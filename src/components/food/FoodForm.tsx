@@ -1,0 +1,509 @@
+/** @format */
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ImagePlus,
+  Save,
+  Clock,
+  DollarSign,
+  Tag,
+  FileText,
+  Trash2,
+  ArrowLeft,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { getAllCategories } from "@/actions/category";
+import { addFood } from "@/actions/food";
+import { UploadButton } from "@/utils/uploadthing";
+// import { addFood } from "@/actions/food";
+
+// Define interfaces
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Variation {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface Addon {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface FoodFormData {
+  name: string;
+  description: string;
+  price: string;
+  discountPrice: string;
+  categoryId: string;
+  isAvailable: boolean;
+  preparationTime: string;
+}
+
+interface FormErrors {
+  name?: string;
+  description?: string;
+  price?: string;
+  discountPrice?: string;
+  categoryId?: string;
+  preparationTime?: string;
+}
+
+const AddFoodForm: React.FC = () => {
+  const router = useRouter();
+  // Form state
+  const [formData, setFormData] = useState<FoodFormData>({
+    name: "",
+    description: "",
+    price: "",
+    discountPrice: "",
+    categoryId: "",
+    isAvailable: true,
+    preparationTime: "",
+  });
+
+  // State for categories, images, etc.
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setUrlImage] = useState<string>("");
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const result = await getAllCategories();
+        if (result.success && result.categories) {
+          setCategories(result.categories as Category[]);
+        } else {
+          setError("Failed to fetch categories");
+          toast.error("Could not load categories");
+        }
+      } catch (error) {
+        setError("Failed to fetch categories");
+        toast.error("Could not load categories");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear the error for this field when user types
+    if (errors[name as keyof FormErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
+  };
+
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      isAvailable: checked,
+    }));
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      categoryId: value,
+    }));
+
+    if (errors.categoryId) {
+      setErrors((prev) => ({
+        ...prev,
+        categoryId: undefined,
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "Food name is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
+    if (!formData.categoryId) newErrors.categoryId = "Category is required";
+
+    if (!formData.price) {
+      newErrors.price = "Price is required";
+    } else if (!/^\d+(\.\d{1,2})?$/.test(formData.price)) {
+      newErrors.price = "Please enter a valid price";
+    }
+
+    if (
+      formData.discountPrice &&
+      !/^\d+(\.\d{1,2})?$/.test(formData.discountPrice)
+    ) {
+      newErrors.discountPrice = "Please enter a valid discount price";
+    }
+
+    if (!formData.preparationTime) {
+      newErrors.preparationTime = "Preparation time is required";
+    } else if (!/^\d+$/.test(formData.preparationTime)) {
+      newErrors.preparationTime = "Please enter a valid number";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Please correct the errors in the form");
+      return;
+    }
+
+    // Prepare data for server action
+    const foodData = {
+      // id: "", // This will be generated by Firebase
+      name: formData.name,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      discountPrice: formData.discountPrice
+        ? parseFloat(formData.discountPrice)
+        : undefined,
+      image: imageUrl, // First image as main image
+      images: [imageUrl], // Array of images
+      categoryId: formData.categoryId,
+      isAvailable: formData.isAvailable,
+      preparationTime: parseInt(formData.preparationTime, 10),
+      variations: [] as Variation[],
+      addons: [] as Addon[],
+      restaurantId: "current-restaurant-id", // This would come from context or auth in real app
+      totalSold: 0,
+      rating: 0,
+      reviewCount: 0,
+    };
+
+    try {
+      setSubmitting(true);
+      const result = await addFood(foodData as any);
+
+      if (result.success) {
+        toast.success("Food item added successfully!");
+        // Reset form or redirect
+        router.push("/foods"); // Replace with your foods listing route
+      } else {
+        toast.error(result.error || "Failed to add food item");
+      }
+    } catch (error) {
+      console.error("Error adding food:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    router.push("/foods"); // Replace with your foods listing route
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          className="mb-4"
+          onClick={handleCancel}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Foods
+        </Button>
+      </div>
+
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+          <CardTitle className="text-2xl font-bold">
+            Add New Food Item
+          </CardTitle>
+          <CardDescription>
+            Complete the form below to add a new food item to your menu
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6 pt-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-blue-500" />
+              Basic Information
+            </h3>
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Food Name</label>
+                <Input
+                  placeholder="e.g. Margherita Pizza"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Category</label>
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    <span className="text-sm">Loading categories...</span>
+                  </div>
+                ) : (
+                  <Select
+                    onValueChange={handleCategoryChange}
+                    value={formData.categoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem
+                          key={category.id}
+                          value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {errors.categoryId && (
+                  <p className="text-sm text-red-500">{errors.categoryId}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Describe the food item..."
+                className="min-h-24"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-500">{errors.description}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-green-500" />
+              Pricing
+            </h3>
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Price ($)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    className="pl-9"
+                    placeholder="0.00"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Regular price of the item
+                </p>
+                {errors.price && (
+                  <p className="text-sm text-red-500">{errors.price}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Discount Price ($)
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    className="pl-9"
+                    placeholder="0.00"
+                    name="discountPrice"
+                    value={formData.discountPrice}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Optional special price</p>
+                {errors.discountPrice && (
+                  <p className="text-sm text-red-500">{errors.discountPrice}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Details */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center">
+              <Tag className="w-5 h-5 mr-2 text-purple-500" />
+              Additional Details
+            </h3>
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Preparation Time (minutes)
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    className="pl-9"
+                    placeholder="15"
+                    name="preparationTime"
+                    value={formData.preparationTime}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                {errors.preparationTime && (
+                  <p className="text-sm text-red-500">
+                    {errors.preparationTime}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <label className="text-base font-medium">Availability</label>
+                  <p className="text-xs text-gray-500">
+                    Is this item available to order?
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.isAvailable}
+                  onCheckedChange={handleSwitchChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Images */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center">
+              <ImagePlus className="w-5 h-5 mr-2 text-amber-500" />
+              Food Images
+            </h3>
+            <Separator />
+
+            <div className="space-y-4 ">
+              <p className="text-sm text-gray-500">
+                Upload images of the food item. You can add multiple images.
+              </p>
+              <div className="bg-gradient-to-r from-blue-900 to-indigo-100 text-zinc-600 rounded-2xl">
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    // Do something with the response
+                    console.log("Files: ", res);
+                    console.log(res[0].ufsUrl!);
+                    setUrlImage(res[0].ufsUrl! as string);
+                    console.log("Upload Completed");
+                  }}
+                  onUploadError={(error: Error) => {
+                    // Do something with the error.
+                    alert(`ERROR! ${error.message}`);
+                  }}
+                />
+              </div>
+              {imageUrl && (
+                <div className="flex items-center space-x-2">
+                  <img
+                    src={imageUrl}
+                    alt="Uploaded Food"
+                    className="w-24 h-24 object-cover rounded-lg"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setUrlImage("")}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="bg-slate-50 dark:bg-gray-900 border-t flex justify-between">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleCancel}
+            disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Food Item
+              </>
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+export default AddFoodForm;

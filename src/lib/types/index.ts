@@ -1,0 +1,262 @@
+/** @format */
+
+// Authentication types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: "admin" | "manager" | "staff";
+  photoURL?: string;
+  restaurantId: string;
+}
+
+// Restaurant types
+export interface Restaurant {
+  id: string;
+  name: string;
+  logo?: string;
+  address: string;
+  phone: string;
+  email: string;
+  website?: string;
+  cuisineTypes: string[];
+  openingHours: OpeningHours[];
+  deliveryOptions: DeliveryOption[];
+  packagingCharges: number;
+}
+
+export interface OpeningHours {
+  day: string;
+  open: string;
+  close: string;
+  isClosed: boolean;
+}
+
+export interface DeliveryOption {
+  id: string;
+  name: string;
+  fee: number;
+  isActive: boolean;
+}
+
+// Food types
+export interface Category {
+  id: string;
+  name: string;
+  image?: string;
+  // isActive: boolean;
+  // description: string;
+  status: boolean;
+  userId: string;
+}
+
+export interface Food {
+  id: string;
+  name: string;
+  description: string;
+  image?: string;
+  price: number;
+  discountPrice?: number;
+  images: string[];
+  categoryId: string;
+  isAvailable: boolean;
+  preparationTime: number;
+  variations: Variation[];
+  addons: Addon[];
+  restaurantId: string;
+  totalSold: number;
+  rating: number;
+  reviewCount: number;
+}
+
+export interface Variation {
+  id: string;
+  name: string;
+  price: number;
+  isAvailable: boolean;
+}
+
+export interface Addon {
+  id: string;
+  name: string;
+  price: number;
+  isAvailable: boolean;
+}
+
+// Order types
+export interface Order {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  items: OrderItem[];
+  subtotal: number;
+  OrderStatus: string;
+  tax: number;
+  deliveryFee: number;
+  packagingFee: number;
+  discount: number;
+  total: number;
+  paymentStatus: "paid" | "unpaid" | "refunded";
+  paymentMethod: string;
+  orderStatus: OrderStatus;
+  orderDate: Date;
+  deliveryDate?: Date;
+  restaurantId: string;
+  notes?: string;
+}
+
+export interface OrderItem {
+  id: string;
+  foodId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  variations: { name: string; price: number }[];
+  addons: { name: string; price: number }[];
+  subtotal: number;
+}
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "accepted"
+  | "cooking"
+  | "ready-for-delivery"
+  | "on-the-way"
+  | "delivered"
+  | "dine-in"
+  | "refunded"
+  | "refund-requested"
+  | "scheduled"
+  | "payment-failed"
+  | "canceled";
+
+// Employee types
+export interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: "admin" | "manager" | "chef" | "delivery" | "staff";
+  isActive: boolean;
+  dateJoined: Date;
+  restaurantId: string;
+  image?: string;
+}
+// Deliveryman type definition
+export interface Deliveryman {
+  id?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password?: string; // Optional in some contexts like updates
+  zone: string;
+  vehicle: string;
+  identityType: string;
+  identityNumber: string;
+  age: string | number;
+  birthdate: string; // ISO date string
+  deliverymanImage?: string; // URL or base64 string
+  profileImage?: string; // URL or base64 string
+  identityImage?: string; // URL or base64 string
+  licenseFile?: string; // URL or base64 string
+  status: "active" | "inactive" | "suspended";
+  createdAt?: Date; // Optional in some contexts like updates
+  updatedAt?: Date;
+} // URL of the deliveryman image
+
+// Promotion types
+export interface Campaign {
+  id: string;
+  name: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscountAmount?: number;
+  isActive: boolean;
+  restaurantId: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  description: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minOrderValue?: number;
+  maxDiscountAmount?: number;
+  startDate: Date;
+  endDate: Date;
+  maxUses?: number;
+  usesCount: number;
+  isActive: boolean;
+  restaurantId: string;
+}
+
+// Dashboard types
+export interface OrderStatistics {
+  confirmed: number;
+  cooking: number;
+  readyForDelivery: number;
+  onTheWay: number;
+  delivered: number;
+  refunded: number;
+  scheduled: number;
+  total: number;
+}
+
+export interface YearlySales {
+  month: string;
+  sales: number;
+  commission: number;
+}
+
+export interface TopSellingFood {
+  id: string;
+  name: string;
+  image: string;
+  soldCount: number;
+}
+
+export interface TopRatedFood {
+  id: string;
+  name: string;
+  image: string;
+  rating: number;
+  reviewCount: number;
+}
+export interface MetaData {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  restaurantId: string;
+  type: string;
+  status: string;
+  imageUrl: string;
+  // Removed as per the new requirement
+  // restaurantId: string;
+}
+export interface RestaurantConfig {
+  id: string;
+  restaurantId: string;
+  configKey: string;
+  configValue: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+  type: string;
+  status: string;
+  imageUrl: string;
+  // Removed as per the new requirement
+}
