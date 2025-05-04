@@ -199,13 +199,28 @@ export interface Coupon {
   isActive: boolean;
   restaurantId: string;
 }
-
+export interface restaurantGallery {
+  category: string;
+  image: string;
+  id: string;
+  description: string;
+  createdAt: Date;
+  title: string;
+}
+export interface TrendingFood {
+  id: string;
+  name: string;
+  image: string;
+  discount: number;
+  originalPrice: number;
+  discountedPrice?: number;
+}
 // Dashboard types
 export interface OrderStatistics {
   confirmed: number;
   cooking: number;
-  readyForDelivery: number;
-  onTheWay: number;
+  ready: number;
+  on_the_way: number;
   delivered: number;
   refunded: number;
   scheduled: number;

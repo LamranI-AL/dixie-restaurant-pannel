@@ -4,18 +4,26 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import {
   LayoutDashboard,
-  ShoppingCart,
-  Megaphone,
-  Ticket,
-  PlusSquare,
-  List,
+  ShoppingBag,
+  BadgePercent,
+  Receipt,
+  PlusCircle,
+  ListOrdered,
   ClipboardList,
-  Repeat,
-  ListFilter,
-  Utensils,
-  Settings,
-  Bell,
+  CalendarClock,
+  FolderTree,
+  ChefHat,
+  Settings2,
+  BellRing,
   ChevronDown,
+  Truck,
+  Users,
+  UserPlus,
+  Store,
+  Megaphone,
+  Banknote,
+  ImagePlus,
+  Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RestaurantLogo from "@/components/common/RestaurantLogo";
@@ -41,10 +49,10 @@ const SidebarItem = ({
   return (
     <div
       className={cn(
-        "sidebar-item flex items-center px-4 py-2.5 text-sm font-medium cursor-pointer",
+        "sidebar-item flex items-center px-4 py-2.5 text-sm font-medium cursor-pointer transition-all duration-200 rounded-md mx-2",
         isActive
-          ? "active-nav bg-sidebar-accent/50 border-l-2 border-primary"
-          : "hover:bg-sidebar-accent/50",
+          ? "active-nav bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md"
+          : "hover:bg-indigo-800/30 text-slate-200 hover:text-white",
       )}
       onClick={onClick}>
       <Link
@@ -65,7 +73,7 @@ interface SidebarSectionProps {
 
 const SidebarSection = ({ title, children }: SidebarSectionProps) => (
   <>
-    <div className="text-xs font-bold text-amber-500  px-4 py-2 mt-2">
+    <div className="text-xs font-bold text-amber-400 px-4 py-2 mt-3 mb-1 uppercase tracking-wider">
       {title}
     </div>
     {children}
@@ -93,171 +101,194 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "bg-slate-800 text-slate-100 w-64 flex-shrink-0 transition-all duration-300 z-40 h-screen",
+        "bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 w-64 flex-shrink-0 transition-all duration-300 z-40 h-screen shadow-xl",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-64",
         "fixed md:static",
       )}>
-      <div className="flex items-center px-4 py-3 border-b border-sidebar-border">
-        <RestaurantLogo className="w-8 h-8 rounded-md" />
-        <h1 className="text-lg font-semibold ml-2">Dixie</h1>
+      <div className="flex items-center px-4 py-4 border-b border-indigo-900/40 bg-slate-950">
+        <RestaurantLogo className="w-10 h-10 rounded-md shadow-md bg-gradient-to-r from-amber-500 to-orange-500 p-1" />
+        <h1 className="text-xl font-bold ml-3 text-white">Dixie</h1>
       </div>
 
-      <div className="py-2 overflow-y-auto h-[calc(100vh-64px)]">
-        <SidebarSection title="MAIN NAVIGATION">
+      <div className="py-3 overflow-y-auto h-[calc(100vh-72px)] custom-scrollbar">
+        <SidebarSection title="Navigation Principale">
           <SidebarItem
             href="/dashboard"
             icon={LayoutDashboard}
-            label="Dashboard"
+            label="Tableau de Bord"
             isActive={location === "/dashboard" || location === "/"}
           />
           <SidebarItem
             href="/point-of-sale"
-            icon={ShoppingCart}
-            label="Point Of Sale"
+            icon={ShoppingBag}
+            label="Point de Vente"
             isActive={location === "/point-of-sale"}
           />
         </SidebarSection>
-        <SidebarSection title="ORDER MANAGEMENT">
+        <SidebarSection title="Gestion des Commandes">
           <SidebarItem
             href="/orders"
             icon={ClipboardList}
-            label="Orders"
+            label="Commandes"
             isActive={location === "/orders"}
           />
           <SidebarItem
             href="/subscriptions"
-            icon={Repeat}
-            label="Order Subscription"
+            icon={CalendarClock}
+            label="Abonnements"
             isActive={location === "/subscriptions"}
           />
         </SidebarSection>
 
-        <SidebarSection title="FOOD MANAGEMENT">
+        <SidebarSection title="Gestion des Plats">
           <SidebarItem
             href="/categories"
-            icon={ListFilter}
-            label="Categories"
+            icon={FolderTree}
+            label="Catégories"
             isActive={location === "/categories"}
           />
           <SidebarItem
             href="/foods"
-            icon={Utensils}
-            label="Foods"
+            icon={ChefHat}
+            label="Plats"
             hasSubMenu
             isActive={location.startsWith("/foods")}
             onClick={() => toggleExpanded("foods")}
           />
           {expanded.foods && (
             <>
-              <div className="flex items-center pl-12 py-2 text-sm text-slate-100 hover:bg-sidebar-accent/50 cursor-pointer">
+              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
                 <Link
                   href="/foods/add-new"
-                  className="w-full">
-                  Add New Food
+                  className="w-full flex items-center">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Ajouter un Plat
                 </Link>
               </div>
-              <div className="flex items-center pl-12 py-2 text-sm text-slate-100  hover:bg-sidebar-accent/50 cursor-pointer">
+              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
                 <Link
                   href="/foods"
-                  className="w-full">
-                  Food List
+                  className="w-full flex items-center">
+                  <ListOrdered className="h-4 w-4 mr-2" />
+                  Liste des Plats
                 </Link>
               </div>
             </>
           )}
         </SidebarSection>
-        <SidebarSection title="DELIVERY MANAGEMENT">
+        <SidebarSection title="Gestion des Livraisons">
           <SidebarItem
             href="/deliveryman/add"
-            icon={PlusSquare}
-            label="add deliverymen "
+            icon={UserPlus}
+            label="Ajouter un Livreur"
             isActive={location === "/delivery/add"}
           />
 
           <SidebarItem
             href="/deliveryman/list"
-            icon={ShoppingCart}
-            label="Delivery List"
+            icon={Truck}
+            label="Liste des Livreurs"
             isActive={location === "/delivery"}
           />
         </SidebarSection>
 
-        <SidebarSection title="PROMOTIONS">
+        <SidebarSection title="Promotions">
           <SidebarItem
             href="/campaigns"
             icon={Megaphone}
-            label="Campaign"
+            label="Campagnes"
             hasSubMenu
             isActive={location.startsWith("/campaigns")}
           />
           <SidebarItem
             href="/coupons"
-            icon={Ticket}
+            icon={BadgePercent}
             label="Coupons"
             isActive={location.startsWith("/coupons")}
           />
         </SidebarSection>
 
-        <SidebarSection title="ADVERTISEMENT MANAGEMENT">
+        <SidebarSection title="Gestion des Publicités">
           <SidebarItem
             href="/ads/new"
-            icon={PlusSquare}
-            label="New Advertisement"
+            icon={ImagePlus}
+            label="Nouvelle Publicité"
             isActive={location === "/ads/new"}
           />
           <SidebarItem
             href="/ads"
-            icon={List}
-            label="Advertisement List"
+            icon={Images}
+            label="Liste des Publicités"
             hasSubMenu
             isActive={location === "/ads"}
           />
         </SidebarSection>
 
-        <SidebarSection title="BUSINESS MANAGEMENT">
+        <SidebarSection title="Gestion de l'Entreprise">
           <SidebarItem
             href="/settings"
-            icon={Settings}
-            label="Restaurant Config"
+            icon={Settings2}
+            label="Configuration du Restaurant"
             isActive={location === "/settings"}
           />
           <SidebarItem
             href="/notifications"
-            icon={Bell}
-            label="Notification Setup"
+            icon={BellRing}
+            label="Paramètres de Notification"
             isActive={location === "/notifications"}
           />
         </SidebarSection>
 
-        <SidebarSection title="EMPLOYEE SECTION">
+        <SidebarSection title="Section Employés">
           <SidebarItem
             href="/employees"
-            icon={List}
-            label="Employees"
+            icon={Users}
+            label="Employés"
             hasSubMenu
             isActive={location.startsWith("/employees")}
             onClick={() => toggleExpanded("employees")}
           />
           {expanded.employees && (
             <>
-              <div className="flex items-center pl-12 py-2 text-sm text-slate-100  hover:bg-sidebar-accent/50 cursor-pointer">
+              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
                 <Link
                   href="/employees/add"
-                  className="w-full">
-                  Add New Employee
+                  className="w-full flex items-center">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Ajouter un Employé
                 </Link>
               </div>
-              <div className="flex items-center pl-12 py-2 text-sm text-slate-100 hover:bg-sidebar-accent/50 cursor-pointer">
+              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
                 <Link
                   href="/employees"
-                  className="w-full">
-                  Employee List
+                  className="w-full flex items-center">
+                  <ListOrdered className="h-4 w-4 mr-2" />
+                  Liste des Employés
                 </Link>
               </div>
             </>
           )}
         </SidebarSection>
       </div>
+
+      {/* Styles personnalisés pour les barres de défilement */}
+      <style
+        jsx
+        global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #4338ca;
+          border-radius: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #4f46e5;
+        }
+      `}</style>
     </aside>
   );
 }

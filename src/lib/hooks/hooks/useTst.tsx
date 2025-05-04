@@ -32,7 +32,7 @@ export function useOrders() {
   const queryClient = useQueryClient();
 
   const fetchOrders = async () => {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("creatAt", "desc"));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -49,7 +49,7 @@ export function useOrders() {
     return { id: snapshot.id, ...snapshot.data() } as Order;
   };
 
-  const createOrder = async (order: Omit<Order, "id" | "createdAt">) => {
+  const createOrder = async (order: Omit<Order, "id" | "creatAt">) => {
     const orderWithTimestamp = {
       ...order,
       createdAt: new Date().toISOString(),
@@ -108,6 +108,7 @@ export function useOrders() {
       "on_the_way",
       "delivered",
       "refunded",
+      "total",
     ];
     for (const status of statuses) {
       const statusQuery = query(

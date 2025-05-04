@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
   },
   images: {
     domains: [
+      "*",
+      "**",
+      "via.placeholder.com",
       "images.pexels.com",
       "cdn.pixabay.com",
       "images.unsplash.com",

@@ -1,6 +1,6 @@
 /** @format */
 "use server";
-
+export type DateFilterType = "today" | "week" | "month" | "year" | "all";
 import {
   collection,
   addDoc,
@@ -15,7 +15,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import { Order, OrderStatus } from "@/lib/types";
+import { Order, OrderStatistics, OrderStatus } from "@/lib/types";
 
 // CREATE: Add a new order
 export async function addOrder(data: Omit<Order, "id">) {
@@ -308,6 +308,64 @@ export async function deleteOrder(id: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting order:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Obtient les statistiques des commandes filtrées par statut
+ * @param orderStatus Statut de commande à filtrer (optionnel)
+ */
+export async function getOrderStatistics(
+  orderStatus?: OrderStatus,
+): Promise<{ success: boolean; statistics?: OrderStatistics; error?: string }> {
+  try {
+    // Initialiser l'objet de statistiques
+    const result: OrderStatistics = {
+      confirmed: 0,
+      cooking: 0,
+      ready: 0,
+      on_the_way: 0,
+      delivered: 0,
+      refunded: 0,
+      scheduled: 0,
+      total: 0,
+    };
+
+    // Récupérer les commandes
+    const ordersRef = collection(db, "orders");
+    let ordersQuery;
+
+    if (orderStatus) {
+      // Filtrer par statut spécifique
+      ordersQuery = query(ordersRef, where("orderStatus", "==", orderStatus));
+    } else {
+      // Récupérer toutes les commandes
+      ordersQuery = query(ordersRef);
+    }
+
+    const ordersSnapshot = await getDocs(ordersQuery);
+    result.total = ordersSnapshot.docs.length; // Définir le nombre total
+
+    // Compter chaque commande par statut
+    ordersSnapshot.forEach((doc) => {
+      const data = doc.data();
+
+      // Compter par statut de commande
+      const status = data.orderStatus;
+      if (status && status in result) {
+        result[status as keyof OrderStatistics]++;
+      }
+
+      // Compter les commandes planifiées
+      if (data.isScheduled === true) {
+        result.scheduled++;
+      }
+    });
+
+    return { success: true, statistics: result };
+  } catch (error) {
+    console.error("Error getting order statistics:", error);
     return { success: false, error: (error as Error).message };
   }
 }

@@ -15,7 +15,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config"; // Assurez-vous que ce chemin est correct pour votre configuration
-import { Food, Variation, Addon } from "@/lib/types";
+import { Food, Variation, Addon, TrendingFood } from "@/lib/types";
 
 // CREATE: Add a new food item
 export async function addFood(data: Food) {
@@ -102,26 +102,6 @@ export async function getFoodsByCategory(categoryId: string) {
   }
 }
 
-// READ: Get food items by restaurant ID
-// export async function getFoodsByRestaurant(restaurantId: string) {
-//   try {
-//     const foodRef = collection(db, "foods");
-//     const q = query(foodRef, where("restaurantId", "==", restaurantId));
-//     const querySnapshot = await getDocs(q);
-
-//     const foods: Food[] = [];
-//     querySnapshot.forEach((doc) => {
-//       foods.push({ id: doc.id, ...doc.data() } as Food);
-//     });
-
-//     return { success: true, foods };
-//   } catch (error) {
-//     console.error("Error getting foods by restaurant:", error);
-//     return { success: false, error: (error as Error).message };
-//   }
-// }
-
-// READ: Get a single food item by ID
 export async function getFoodById(id: string) {
   try {
     const foodRef = doc(db, "foods", id);
@@ -142,18 +122,18 @@ export async function getFoodById(id: string) {
 }
 
 // READ: Get popular food items
-export async function getPopularFoods(limit_count: number = 10) {
+export async function getPopularFoods() {
   try {
-    const foodRef = collection(db, "foods");
-    const q = query(foodRef, orderBy("totalSold", "desc"), limit(limit_count));
+    const foodRef = collection(db, "trendingItems");
+    const q = query(foodRef, orderBy("discount", "desc"));
     const querySnapshot = await getDocs(q);
 
-    const foods: Food[] = [];
+    const trindingfoods: TrendingFood[] = [];
     querySnapshot.forEach((doc) => {
-      foods.push({ id: doc.id, ...doc.data() } as Food);
+      trindingfoods.push({ id: doc.id, ...doc.data() } as TrendingFood);
     });
 
-    return { success: true, foods };
+    return { success: true, trindingfoods };
   } catch (error) {
     console.error("Error getting popular foods:", error);
     return { success: false, error: (error as Error).message };
