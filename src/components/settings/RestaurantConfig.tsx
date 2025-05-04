@@ -6,11 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+// import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -36,7 +35,7 @@ export default function RestaurantConfig({
 }: RestaurantConfigProps) {
   const [localConfig, setLocalConfig] = useState<ConfigType>(config);
 
-  const updateConfig = (key: keyof ConfigType, value: any) => {
+  const updateConfig = (key: keyof ConfigType, value: string) => {
     setLocalConfig((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -157,7 +156,7 @@ export default function RestaurantConfig({
                 id={item.key}
                 checked={localConfig[item.key as keyof ConfigType] as boolean}
                 onCheckedChange={(checked) =>
-                  updateConfig(item.key as keyof ConfigType, checked)
+                  updateConfig(item.key as keyof ConfigType, checked.toString())
                 }
               />
             </div>
@@ -184,7 +183,7 @@ export default function RestaurantConfig({
                 </TooltipContent>
               </Tooltip>
             </div>
-            <RadioGroup
+            {/* <RadioGroup
               // value={localConfig.packagingChargeType}
               // onValueChange={(value) =>
               //   updateConfig("packagingChargeType", value)
@@ -204,7 +203,7 @@ export default function RestaurantConfig({
                 />
                 <Label htmlFor="mandatory">Mandatory</Label>
               </div>
-            </RadioGroup>
+            </RadioGroup> */}
           </div>
 
           <div className="mb-4">
@@ -377,15 +376,6 @@ export default function RestaurantConfig({
             <Input
               id="tags"
               placeholder="Enter tags separated by commas"
-              // value={localConfig.tags.join(", ")}
-              onChange={(e) => {
-                const tagsValue = e.target.value;
-                const tagsArray = tagsValue
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter((tag) => tag.length > 0);
-                // updateConfig("tags", tagsArray);
-              }}
               className="w-full"
             />
           </div>

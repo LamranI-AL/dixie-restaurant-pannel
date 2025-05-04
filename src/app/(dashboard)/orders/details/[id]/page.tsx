@@ -3,13 +3,11 @@ import React from "react";
 
 import OrderDetailsComponent from "@/components/dashboard/orders/OrderDetails";
 
-interface OrderDetailsProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function OrderDetails({ params }: OrderDetailsProps) {
-  const id = await params.id;
+export default async function OrderDetails({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   return <OrderDetailsComponent orderId={id} />;
 }

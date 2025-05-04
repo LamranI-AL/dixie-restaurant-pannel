@@ -42,7 +42,7 @@ export default function Login() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  // const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -221,7 +221,7 @@ export default function Login() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || isGoogleLoading}>
+                disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

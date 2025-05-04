@@ -37,7 +37,7 @@ export async function getAllCategories() {
 
     const categories: Category[] = [];
     querySnapshot.forEach((doc) => {
-      categories.push({ id: doc.id, ...doc.data() } as any);
+      categories.push({ id: doc.id, ...doc.data() } as Category);
     });
 
     return { success: true, categories };
@@ -75,7 +75,7 @@ export async function getCategoryById(id: string) {
     if (docSnap.exists()) {
       return {
         success: true,
-        category: { id: docSnap.id, ...docSnap.data() } as any,
+        category: { id: docSnap.id, ...docSnap.data() } as Category,
       };
     } else {
       return { success: false, error: "Category not found" };

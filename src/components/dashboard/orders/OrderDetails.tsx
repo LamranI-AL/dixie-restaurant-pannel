@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Order, OrderStatus } from "@/lib/types";
-import Image from "next/image";
+// import Image from "next/image";
 import {
   Printer,
   PenLine,
@@ -15,7 +15,7 @@ import {
 import { getOrderById, updateOrderStatus } from "@/actions/ordres";
 
 // Fonction utilitaire pour formater les prix
-const formatPrice = (price: any): string => {
+const formatPrice = (price: number): string => {
   if (price === undefined || price === null) return "0.00";
 
   // Si c'est déjà un nombre, on le convertit directement
@@ -33,19 +33,19 @@ const formatPrice = (price: any): string => {
 };
 
 // Fonction utilitaire pour formater les dates
-const formatDateFn = (date: any) => {
+const formatDateFn = (date: Date) => {
   if (!date) return "Date non disponible";
 
   let d: Date;
 
   // Si c'est un Timestamp Firebase (avec méthode toDate())
-  if (date && typeof date === "object" && date.seconds !== undefined) {
-    d = new Date(date.seconds * 1000);
+  if (date && typeof date === "object" && date !== undefined) {
+    d = new Date(date);
   }
   // Si c'est déjà un objet Date
-  else if (date instanceof Date) {
-    d = date;
-  }
+  // else if (date instanceof Date) {
+  //   d = date;
+  // }
   // Si c'est une chaîne ou un nombre
   else if (typeof date === "string" || typeof date === "number") {
     d = new Date(date);
@@ -205,7 +205,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
             </div>
             <button className="flex items-center gap-1 text-xs text-blue-500 mt-2 border border-blue-500 rounded-md px-2 py-1">
               <MapPin size={12} />
-              Afficher l'emplacement sur la carte
+              {`Afficher l'emplacement sur la carte`}
             </button>
           </div>
         </div>
@@ -290,7 +290,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                     N°
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Détails de l'article
+                    {`Détails de l'article`}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Suppléments

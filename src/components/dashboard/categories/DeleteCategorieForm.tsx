@@ -8,7 +8,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Category } from "@/lib/types";
-import { useAuth } from "@/providers/auth-provider";
 import { Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -20,7 +19,6 @@ interface DeleteCategoryProps {
 export function DeleteCategoryConfirmation({
   categoryId,
 }: DeleteCategoryProps) {
-  // const { currentUser } = useAuth();
   const [category, setCategory] = useState<Category | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();

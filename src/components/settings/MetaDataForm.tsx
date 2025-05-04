@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
 import { MetaData } from "@/lib/types";
+import Image from "next/image";
 // import { MetaData } from "@/types";
 
 interface MetaDataFormProps {
@@ -27,15 +28,15 @@ export default function MetaDataForm({
     "default" | "english" | "bengali" | "arabic"
   >("default");
 
-  const handleChange = (field: keyof MetaData["name"], value: string) => {
-    setLocalMetadata((prev) => ({
-      ...prev,
-      // [language]: {
-      //   // ...prev[language],
-      //   [field]: value,
-      // },
-    }));
-  };
+  // const handleChange = (field: keyof MetaData["name"], value: string) => {
+  //   setLocalMetadata((prev) => ({
+  //     ...prev,
+  //     // [language]: {
+  //     //   // ...prev[language],
+  //     //   [field]: value,
+  //     // },
+  //   }));
+  // };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,7 +144,9 @@ export default function MetaDataForm({
               </p>
               <div className="flex justify-center mb-4">
                 {localMetadata.image ? (
-                  <img
+                  <Image
+                    width={160}
+                    height={160}
                     src={localMetadata.image! ?? ""}
                     alt="Restaurant logo"
                     className="w-40 h-40 object-cover rounded-md"

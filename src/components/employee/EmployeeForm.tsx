@@ -7,7 +7,6 @@ import { useState } from "react";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ImagePlus, User } from "lucide-react";
 import { Employee } from "@/lib/types";
+import Image from "next/image";
 // import { Employee } from "@/types";
 
 const phoneRegex = /^\+?[1-9]\d{1,14}$/;
@@ -234,7 +234,9 @@ export default function EmployeeForm({
                 </p>
                 <div className="border border-gray-200 rounded-md p-4 bg-gray-50 flex items-center justify-center h-44 mb-4">
                   {imagePreview ? (
-                    <img
+                    <Image
+                      width={96}
+                      height={96}
                       src={imagePreview}
                       alt="Employee preview"
                       className="h-24 w-24 object-cover rounded-md"

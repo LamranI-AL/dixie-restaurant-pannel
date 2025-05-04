@@ -1,7 +1,7 @@
 /** @format */
 
 import { db } from "@/lib/firebase/config";
-import { Order } from "@/lib/types";
+import { Order, OrderStatus } from "@/lib/types";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -72,13 +72,20 @@ export function useOrders() {
   };
 
   const fetchOrderStatistics = async () => {
-    const statuses: OrderStatus[] = [
+    const statuses: Array<keyof typeof result> = [
       "confirmed",
       "cooking",
       "ready",
       "on_the_way",
     ];
-    const result = { confirmed: 0, cooking: 0, ready: 0, on_the_way: 0 };
+    const result: {
+      [key in "confirmed" | "cooking" | "ready" | "on_the_way"]: number;
+    } = {
+      confirmed: 0,
+      cooking: 0,
+      ready: 0,
+      on_the_way: 0,
+    };
 
     for (const status of statuses) {
       const q = query(collection(db, "orders"), where("status", "==", status));

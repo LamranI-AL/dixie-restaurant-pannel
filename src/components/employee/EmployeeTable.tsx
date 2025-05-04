@@ -1,6 +1,6 @@
 /** @format */
 
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, DataTableColumn } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { PlusCircle, Pencil, Trash2, FileDown } from "lucide-react";
@@ -153,7 +153,7 @@ export default function EmployeeTable({
 
       <DataTable
         data={employees}
-        columns={columns as any}
+        columns={columns as []}
         searchPlaceholder="Ex: Search by Employee Name"
         searchKey="firstName"
         className="bg-white p-4 rounded-lg border border-gray-200"

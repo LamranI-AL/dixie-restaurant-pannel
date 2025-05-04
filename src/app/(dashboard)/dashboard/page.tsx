@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/providers/auth-provider";
+// import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AreaChart,
@@ -158,7 +158,7 @@ const topRatedFoods: TopRatedFood[] = [
 
 export default function DashboardPage() {
   // const { currentUser } = useAuth();
-  const [orderStats, setOrderStats] = useState<OrderStatistics>({
+  const orderStats = {
     confirmed: 1,
     cooking: 0,
     readyForDelivery: 1,
@@ -167,7 +167,7 @@ export default function DashboardPage() {
     refunded: 0,
     scheduled: 1,
     total: 69,
-  });
+  };
 
   const [statsType, setStatsType] = useState("overall");
 
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="overall">Overall Statistics</SelectItem>
-                    <SelectItem value="today">Today's Statistics</SelectItem>
+                    <SelectItem value="today">{`Today's Statistics`}</SelectItem>
                     <SelectItem value="weekly">Weekly Statistics</SelectItem>
                     <SelectItem value="monthly">Monthly Statistics</SelectItem>
                   </SelectGroup>
@@ -478,7 +478,9 @@ export default function DashboardPage() {
                   key={food.id}
                   className="flex flex-col items-center">
                   <div className="w-24 h-24 rounded-md overflow-hidden mb-2">
-                    <img
+                    <Image
+                      width={300}
+                      height={300}
                       src={food.image}
                       alt={food.name}
                       className="h-full w-full object-cover"

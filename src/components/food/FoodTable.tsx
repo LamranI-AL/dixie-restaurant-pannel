@@ -23,7 +23,7 @@ export default function FoodTable({
   onToggleStatus,
   onToggleRecommended,
 }: FoodTableProps) {
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const columns = [
     {
@@ -128,7 +128,7 @@ export default function FoodTable({
 
       <DataTable
         data={foods}
-        columns={columns as any}
+        columns={columns as []}
         searchPlaceholder="Ex: Search Food Name"
         searchKey="name"
         filterOptions={[

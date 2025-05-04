@@ -3,9 +3,7 @@
 import { UploadButton } from "@/utils/uploadthing";
 import React from "react";
 
-type Props = {};
-
-function CategoryImgUpl({}: Props) {
+function CategoryImgUpl() {
   return (
     <div>
       <UploadButton

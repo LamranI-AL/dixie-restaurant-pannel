@@ -14,12 +14,13 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, Eye, Filter, Download } from "lucide-react";
+import { Search, Printer, Eye, Download } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Link from "next/link";
 import { getAllOrders } from "@/actions/ordres";
+import { formatDate } from "@/utils/format-date";
 
 // Mock order data
 const mockOrders: Order[] = [
@@ -171,57 +172,6 @@ const getPaymentStatusColor = (
 
   return statusColors[status] || "text-gray-600";
 };
-export const formatDate = (date: any) => {
-  // Gérer différents types de dates possibles à partir de Firebase
-  let d: Date;
-
-  if (!date) {
-    return (
-      <div>
-        <div>Date non disponible</div>
-        <div className="text-muted-foreground text-xs">--:-- --</div>
-      </div>
-    );
-  }
-
-  // Si c'est un Timestamp Firebase (avec méthode toDate())
-  if (date && typeof date === "object" && "toDate" in date) {
-    d = date.toDate();
-  }
-  // Si c'est déjà un objet Date
-  else if (date instanceof Date) {
-    d = date;
-  }
-  // Si c'est une chaîne ou un nombre
-  else if (typeof date === "string" || typeof date === "number") {
-    d = new Date(date);
-  }
-  // Gestion des cas imprévus
-  else {
-    return (
-      <div>
-        <div>Format de date invalide</div>
-        <div className="text-muted-foreground text-xs">--:-- --</div>
-      </div>
-    );
-  }
-
-  // Formatage de la date
-  const day = d.getDate().toString().padStart(2, "0");
-  const month = new Intl.DateTimeFormat("fr", { month: "short" }).format(d);
-  const year = d.getFullYear();
-  const hours = d.getHours();
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const formattedHours = hours % 12 || 12;
-
-  return (
-    <div>
-      <div>{`${day} ${month} ${year}`}</div>
-      <div className="text-muted-foreground text-xs">{`${formattedHours}:${minutes} ${ampm}`}</div>
-    </div>
-  );
-};
 
 export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -340,11 +290,11 @@ export default function OrdersPage() {
   };
   useEffect(() => {
     const fetchFoods = async () => {
-      const { success, error, orders } = await getAllOrders();
+      const { success, orders } = await getAllOrders();
       console.log(orders);
       console.log(success);
       if (success) {
-        setOrders(orders as any);
+        setOrders(orders as Order[]);
       } else {
         console.error("Error fetching categories");
       }

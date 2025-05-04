@@ -27,7 +27,8 @@ export function PopoverButton({ buttonName }: PopoverProps) {
     const image =
       urlImage ?? "https://img.icons8.com/color/96/000000/curry.png";
     // const isActivited = true;
-    const newCategory: Category | any = {
+    const newCategory: Category = {
+      id: "0",
       name,
       image,
       status: true,

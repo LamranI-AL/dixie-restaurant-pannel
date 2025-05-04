@@ -2,14 +2,10 @@
 
 import React from "react";
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
+async function page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
-async function page({ params }: Props) {
-  return <div>page of edit {params.id}</div>;
+  return <div>page of edit {id}</div>;
 }
 
 export default page;

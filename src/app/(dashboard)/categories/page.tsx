@@ -35,7 +35,7 @@ export default function CategoriesPage() {
       console.log(categories);
       console.log(success);
       if (success) {
-        setCategories(categories as any);
+        setCategories(categories as Category[]);
       } else {
         console.error("Error fetching categories");
       }

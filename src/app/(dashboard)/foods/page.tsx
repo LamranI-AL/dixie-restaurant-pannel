@@ -23,7 +23,7 @@ export default function FoodsPage() {
       console.log(foods);
       console.log(success);
       if (success) {
-        setFoods(foods as any);
+        setFoods(foods as Food[]);
       } else {
         console.error("Error fetching categories");
       }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { UploadDropzone } from "@/utils/uploadthing";
 import { ImagePlus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface ImageUploaderProps {
   imageUrl: string | null;
@@ -43,7 +44,9 @@ const ImageUploader = ({
             className={`${
               aspectRatio === "square" ? "aspect-square" : "aspect-[16/9]"
             } relative bg-gray-50 overflow-hidden`}>
-            <img
+            <Image
+              width={500}
+              height={500}
               src={imageUrl}
               alt="Uploaded image"
               className="w-full h-full object-cover"
@@ -77,14 +80,14 @@ const ImageUploader = ({
           } relative bg-gray-50`}>
           <UploadDropzone
             endpoint="imageUploader"
-            onClientUploadComplete={(res: any) => {
+            onClientUploadComplete={(res) => {
               if (res && res.length > 0) {
                 onUploadComplete(res[0].url);
                 setIsUploading(false);
                 setError(null);
               }
             }}
-            onUploadError={(err: any) => {
+            onUploadError={(err) => {
               setError(err.message);
               setIsUploading(false);
             }}

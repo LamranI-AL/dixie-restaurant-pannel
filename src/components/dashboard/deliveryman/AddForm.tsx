@@ -9,7 +9,7 @@ import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
+// import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { addDeliveryman } from "@/actions/deliveryman";
+import { Deliveryman } from "@/lib/types";
 
 // Form validation schema
 const formSchema = z
@@ -150,7 +151,7 @@ export default function AddDeliveryman() {
     setIsLoading(true);
     try {
       // Convert form data to the format needed for Firebase
-      const deliverymanData = {
+      const deliverymanData: Deliveryman = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
@@ -162,14 +163,19 @@ export default function AddDeliveryman() {
         birthdate: values.birthdate.toISOString(),
         phone: values.phone,
         password: values.password, // In production, you should hash this on the server side
-        deliverymanType: values.deliverymanType,
-        profileImage: profileImage,
-        identityImage: identityImage,
-        licenseFile: licenseFile ? licenseFile.name : null,
-        createdAt: new Date().toISOString(),
+        // deliverymanType: values.deliverymanType,
+        profileImage: profileImage as string,
+        identityImage: identityImage as string,
+        status: "inactive",
+        createdAt: new Date(Date.now()),
+        deliverymanImage: profileImage as string,
+        id: "0",
+        updatedAt: new Date(),
+        // licenseFile: licenseFile ? licenseFile.name : (null) as string,
+        // createdAt: new Date().toISOString(),
       };
 
-      const result = await addDeliveryman(deliverymanData as any);
+      const result = await addDeliveryman(deliverymanData);
 
       if (result.success) {
         // Redirect to deliveryman list or show success message
@@ -525,15 +531,15 @@ export default function AddDeliveryman() {
                         <PopoverContent
                           className="w-auto p-0"
                           align="start">
-                          <Calendar
+                          {/* <Calendar
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date: any) =>
+                            disabled={(date: Date) =>
                               date > new Date() || date < new Date("1900-01-01")
                             }
                             initialFocus
-                          />
+                          /> */}
                         </PopoverContent>
                       </Popover>
                       <FormMessage />

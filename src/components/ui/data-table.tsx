@@ -1,3 +1,5 @@
+/** @format */
+
 import React, { useState } from "react";
 import {
   Table,
@@ -9,11 +11,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Columns } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface DataTableColumn<T> {
+export interface DataTableColumn<T> {
   key: string;
   header: string;
   cell?: (item: T) => React.ReactNode;
@@ -91,8 +99,7 @@ export function DataTable<T>({
             <Button
               size="sm"
               variant="ghost"
-              className="absolute right-2 top-2 h-5 p-1 rounded bg-gray-200"
-            >
+              className="absolute right-2 top-2 h-5 p-1 rounded bg-gray-200">
               <Search className="h-3 w-3 text-gray-600" />
             </Button>
           </div>
@@ -103,14 +110,15 @@ export function DataTable<T>({
             <Select
               key={filter.key}
               defaultValue={filter.defaultValue || "all"}
-              onValueChange={(value) => handleFilterChange(filter.key, value)}
-            >
+              onValueChange={(value) => handleFilterChange(filter.key, value)}>
               <SelectTrigger className="w-full sm:w-[180px] bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {filter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
@@ -121,8 +129,7 @@ export function DataTable<T>({
           <Button
             variant="outline"
             size="sm"
-            className="bg-gray-100 hover:bg-gray-200 px-4 py-2 h-10 text-sm font-medium"
-          >
+            className="bg-gray-100 hover:bg-gray-200 px-4 py-2 h-10 text-sm font-medium">
             <Columns className="h-4 w-4 mr-1 text-gray-700" />
             Columns
           </Button>
@@ -135,7 +142,9 @@ export function DataTable<T>({
             <TableHeader>
               <TableRow>
                 {columns.map((column) => (
-                  <TableHead key={column.key} className={column.className}>
+                  <TableHead
+                    key={column.key}
+                    className={column.className}>
                     {column.header}
                   </TableHead>
                 ))}
@@ -146,8 +155,7 @@ export function DataTable<T>({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
+                    className="h-24 text-center">
                     No results found.
                   </TableCell>
                 </TableRow>
@@ -155,8 +163,12 @@ export function DataTable<T>({
                 filteredData.map((row, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {columns.map((column) => (
-                      <TableCell key={`${rowIndex}-${column.key}`} className={column.className}>
-                        {column.cell ? column.cell(row) : (row as any)[column.key]}
+                      <TableCell
+                        key={`${rowIndex}-${column.key}`}
+                        className={column.className}>
+                        {column.cell
+                          ? column.cell(row)
+                          : (row as any)[column.key]}
                       </TableCell>
                     ))}
                   </TableRow>

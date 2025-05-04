@@ -1,10 +1,6 @@
 /** @format */
 "use client";
-import {
-  addCategory,
-  getCategoryById,
-  updateCategory,
-} from "@/actions/category";
+import { getCategoryById, updateCategory } from "@/actions/category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Category } from "@/lib/types";
-import { useAuth } from "@/providers/auth-provider";
+// import { useAuth } from "@/providers/auth-provider";
 import { PenBox } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -22,15 +18,15 @@ interface EditCategoryFormProps {
   Categryid: string;
 }
 export function EditCategoryForm({ Categryid }: EditCategoryFormProps) {
-  const { currentUser } = useAuth();
-  const [category, setCategory] = useState<Category | any>(null);
+  // const { currentUser } = useAuth();
+  const [category, setCategory] = useState<Category>();
   const router = useRouter();
   useEffect(() => {
     const getCurrentCategory = async (id: string) => {
       try {
         const currentCategory = await getCategoryById(id);
-        setCategory(currentCategory.category as any);
-        console.log("currentCategory", currentCategory.category.name);
+        setCategory(currentCategory.category as Category);
+        console.log("currentCategory", currentCategory?.category?.name);
       } catch (error) {
         console.error("Error getting category:", error);
       }

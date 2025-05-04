@@ -1,7 +1,6 @@
 /** @format */
 "use client";
 import { cn } from "@/lib/utils";
-import { Utensils } from "lucide-react";
 import Image from "next/image";
 import logo from "../../../public/1.jpg";
 

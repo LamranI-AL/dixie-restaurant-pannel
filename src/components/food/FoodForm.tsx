@@ -38,6 +38,8 @@ import { toast } from "sonner";
 import { getAllCategories } from "@/actions/category";
 import { addFood } from "@/actions/food";
 import { UploadButton } from "@/utils/uploadthing";
+import { Food } from "@/lib/types";
+import Image from "next/image";
 // import { addFood } from "@/actions/food";
 
 // Define interfaces
@@ -94,7 +96,7 @@ const AddFoodForm: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null);
   const [imageUrl, setUrlImage] = useState<string>("");
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -106,11 +108,11 @@ const AddFoodForm: React.FC = () => {
         if (result.success && result.categories) {
           setCategories(result.categories as Category[]);
         } else {
-          setError("Failed to fetch categories");
+          // setError("Failed to fetch categories");
           toast.error("Could not load categories");
         }
       } catch (error) {
-        setError("Failed to fetch categories");
+        // setError("Failed to fetch categories");
         toast.error("Could not load categories");
       } finally {
         setLoading(false);
@@ -220,7 +222,7 @@ const AddFoodForm: React.FC = () => {
 
     try {
       setSubmitting(true);
-      const result = await addFood(foodData as any);
+      const result = await addFood(foodData as Food);
 
       if (result.success) {
         toast.success("Food item added successfully!");
@@ -458,7 +460,9 @@ const AddFoodForm: React.FC = () => {
               </div>
               {imageUrl && (
                 <div className="flex items-center space-x-2">
-                  <img
+                  <Image
+                    width={96}
+                    height={96}
                     src={imageUrl}
                     alt="Uploaded Food"
                     className="w-24 h-24 object-cover rounded-lg"
