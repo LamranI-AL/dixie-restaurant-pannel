@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AddGalleryForm } from "./add-gallery-form";
+// import { AddGalleryForm } from "./add-gallery-form";
 import { restaurantGallery } from "@/lib/types";
 
 interface GalleryPopupButtonProps {

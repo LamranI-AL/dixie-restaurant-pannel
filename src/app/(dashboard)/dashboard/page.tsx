@@ -30,7 +30,7 @@ import { DateFilterType, getOrderStatistics } from "@/actions/ordres";
 import { useRouter } from "next/navigation";
 import { getPopularFoods } from "@/actions/food";
 import GalleryPage from "@/components/dashboard/gallery/pageUpGall";
-import { useCategories } from "@/lib/hooks/hooks/useCategories";
+// import { useCategories } from "@/lib/hooks/hooks/useCategories";
 import { useOrders } from "@/lib/hooks/hooks/useOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/hooks/hooks/use-toast";

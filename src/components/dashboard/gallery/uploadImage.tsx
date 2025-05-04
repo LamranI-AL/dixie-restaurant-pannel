@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { UploadButton } from "@/utils/uploadthing";
 
 interface FileUploadProps {
-  onChange: (url) => Promise<string | null>;
+  onChange: (url: any) => Promise<string | null>;
   value?: string;
   disabled?: boolean;
   className?: string;
