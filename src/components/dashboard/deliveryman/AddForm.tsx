@@ -132,8 +132,8 @@ export default function AddDeliveryman() {
         phone: values.phone,
         password: values.password, // In production, you should hash this on the server side
         // deliverymanType: values.deliverymanType,
-        profileImage: imageProfile as string,
-        identityImage: imageIdentifier as string,
+        profileImageUrl: imageProfile as string,
+        identityImageUrl: imageIdentifier as string,
         status: "inactive",
         createdAt: new Date(Date.now()),
         deliverymanImage: imageProfile as string,

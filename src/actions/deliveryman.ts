@@ -20,16 +20,16 @@ import { Deliveryman } from "@/lib/types";
 export async function addDeliveryman(data: Deliveryman) {
   try {
     const {
-      profileImage, // string URL
-      identityImage, // string URL
+      profileImageUrl, // string URL
+      identityImageUrl, // string URL
       licenseFile, // string URL
       ...deliverymanData
     } = data;
 
     const deliverymanWithUrls = {
       ...deliverymanData,
-      profileImageUrl: profileImage || null,
-      identityImageUrl: identityImage || null,
+      profileImageUrl: profileImageUrl || null,
+      identityImageUrl: identityImageUrl || null,
       licenseFileUrl: licenseFile || null,
       createdAt: new Date().toISOString(),
     };
