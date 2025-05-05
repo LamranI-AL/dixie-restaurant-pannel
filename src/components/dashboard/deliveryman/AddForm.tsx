@@ -141,6 +141,8 @@ export default function AddDeliveryman() {
         updatedAt: new Date(),
         // licenseFile: licenseFile ? licenseFile.name : (null) as string,
         // createdAt: new Date().toISOString(),
+
+        // h
       };
 
       const result = await addDeliveryman(deliverymanData);
