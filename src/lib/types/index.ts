@@ -161,8 +161,8 @@ export interface Deliveryman {
   age: string | number;
   birthdate: string; // ISO date string
   deliverymanImage?: string; // URL or base64 string
-  profileImage?: string; // URL or base64 string
-  identityImage?: string; // URL or base64 string
+  profileImageUrl?: string; // URL or base64 string
+  identityImageUrl?: string; // URL or base64 string
   licenseFile?: string; // URL or base64 string
   status: "active" | "inactive" | "suspended";
   createdAt?: Date; // Optional in some contexts like updates

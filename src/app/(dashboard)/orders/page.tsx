@@ -21,6 +21,7 @@ import autoTable from "jspdf-autotable";
 import Link from "next/link";
 import { getAllOrders } from "@/actions/ordres";
 import { formatDate } from "@/utils/format-date";
+import AddOrderForm from "@/components/command/OrderForm";
 
 // Mock order data
 const mockOrders: Order[] = [
@@ -303,6 +304,7 @@ export default function OrdersPage() {
   }, []);
   return (
     <div className="space-y-4">
+      <AddOrderForm />
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <svg
@@ -342,6 +344,7 @@ export default function OrdersPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
           <Button
             variant="outline"
             size="icon">

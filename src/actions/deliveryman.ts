@@ -12,72 +12,31 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+// import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db } from "@/lib/firebase/config";
 import { Deliveryman } from "@/lib/types";
 
 // CREATE: Add a new deliveryman
 export async function addDeliveryman(data: Deliveryman) {
   try {
-    // Extract data that needs to be processed
-    const { profileImage, identityImage, licenseFile, ...deliverymanData } =
-      data;
+    const {
+      profileImage, // string URL
+      identityImage, // string URL
+      licenseFile, // string URL
+      ...deliverymanData
+    } = data;
 
-    // Initialize storage for file uploads if needed
-    const storage = getStorage();
-    let profileImageUrl = null;
-    let identityImageUrl = null;
-    let licenseFileUrl = null;
-
-    // Handle profile image upload if exists (base64 string)
-    if (profileImage) {
-      // Convert base64 to blob
-      const profileImageBlob = await fetch(profileImage).then((res) =>
-        res.blob(),
-      );
-      const profileImageRef = ref(
-        storage,
-        `deliverymen/profiles/${Date.now()}-${deliverymanData.firstName}`,
-      );
-      await uploadBytes(profileImageRef, profileImageBlob);
-      profileImageUrl = await getDownloadURL(profileImageRef);
-    }
-
-    // Handle identity image upload if exists (base64 string)
-    if (identityImage) {
-      // Convert base64 to blob
-      const identityImageBlob = await fetch(identityImage).then((res) =>
-        res.blob(),
-      );
-      const identityImageRef = ref(
-        storage,
-        `deliverymen/identity/${Date.now()}-${deliverymanData.firstName}`,
-      );
-      await uploadBytes(identityImageRef, identityImageBlob);
-      identityImageUrl = await getDownloadURL(identityImageRef);
-    }
-
-    // Handle license file upload if exists (File object needs to be handled differently on server)
-    // Note: In a server action, we need a different approach for file uploads
-    // This is just a placeholder - in a real implementation you'd need to use FormData or another method
-    if (licenseFile) {
-      // For server actions, we would typically upload the file from the client first
-      // and then pass the URL or file info to the server action
-      licenseFileUrl = "/path/to/license/file"; // Placeholder
-    }
-
-    // Prepare data for Firestore
-    const deliverymanWithFiles = {
+    const deliverymanWithUrls = {
       ...deliverymanData,
-      profileImageUrl,
-      identityImageUrl,
-      licenseFileUrl,
+      profileImageUrl: profileImage || null,
+      identityImageUrl: identityImage || null,
+      licenseFileUrl: licenseFile || null,
       createdAt: new Date().toISOString(),
     };
 
-    // Add document to Firestore
+    // Add to Firestore
     const deliverymanRef = collection(db, "deliverymen");
-    const docRef = await addDoc(deliverymanRef, deliverymanWithFiles);
+    const docRef = await addDoc(deliverymanRef, deliverymanWithUrls);
 
     return { success: true, id: docRef.id };
   } catch (error) {

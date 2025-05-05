@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Order, OrderStatus } from "@/lib/types";
-// import Image from "next/image";
 import {
   Printer,
   PenLine,
@@ -11,8 +10,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
+  Loader2,
 } from "lucide-react";
 import { getOrderById, updateOrderStatus } from "@/actions/ordres";
+import { toast } from "sonner"; // Assuming you're using react-hot-toast
 
 // Fonction utilitaire pour formater les prix
 const formatPrice = (price: number): string => {
@@ -42,10 +43,6 @@ const formatDateFn = (date: Date) => {
   if (date && typeof date === "object" && date !== undefined) {
     d = new Date(date);
   }
-  // Si c'est déjà un objet Date
-  // else if (date instanceof Date) {
-  //   d = date;
-  // }
   // Si c'est une chaîne ou un nombre
   else if (typeof date === "string" || typeof date === "number") {
     d = new Date(date);
@@ -76,11 +73,11 @@ interface OrderDetailsProps {
 }
 
 export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
-  //   const orderId = params.id;
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [orderStatus, setOrderStatus] = useState<OrderStatus | "">("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     async function fetchOrder() {
@@ -92,9 +89,15 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
           const sanitizedOrder = JSON.parse(JSON.stringify(result.order));
           setOrder(sanitizedOrder);
           setOrderStatus(sanitizedOrder?.orderStatus || "");
+
+          // Toast de succès
+          toast.success("Détails de la commande chargés avec succès");
+        } else {
+          toast.error("Erreur lors du chargement de la commande");
         }
       } catch (error) {
         console.error("Erreur lors du chargement de la commande:", error);
+        toast.error("Erreur lors du chargement de la commande");
       } finally {
         setLoading(false);
       }
@@ -110,16 +113,25 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
   ) => {
     const newStatus = e.target.value as OrderStatus;
     setOrderStatus(newStatus);
+    setIsUpdating(true);
 
     if (order) {
       try {
         const result = await updateOrderStatus(order.id, newStatus);
         if (result.success) {
-          // Success notification could be added here
-          console.log("Statut mis à jour avec succès");
+          toast.success("Statut mis à jour avec succès");
+        } else {
+          toast.error("Erreur lors de la mise à jour du statut");
+          // Remettre l'ancien statut en cas d'échec
+          setOrderStatus(order.orderStatus);
         }
       } catch (error) {
         console.error("Erreur lors de la mise à jour du statut:", error);
+        toast.error("Erreur lors de la mise à jour du statut");
+        // Remettre l'ancien statut en cas d'erreur
+        setOrderStatus(order.orderStatus);
+      } finally {
+        setIsUpdating(false);
       }
     }
   };
@@ -133,21 +145,22 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
   };
 
   const handleAssignDelivery = () => {
-    console.log("Assign delivery person");
+    toast.info("Fonctionnalité en cours de développement");
   };
 
   const handleAddReference = () => {
-    console.log("Add reference code");
+    toast.info("Fonctionnalité en cours de développement");
   };
 
   const handleAddDeliveryProof = () => {
-    console.log("Add delivery proof");
+    toast.info("Fonctionnalité en cours de développement");
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        Chargement des détails de la commande...
+      <div className="flex flex-col justify-center items-center h-96">
+        <Loader2 className="h-8 w-8 text-orange-500 animate-spin mb-4" />
+        <p>Chargement des détails de la commande...</p>
       </div>
     );
   }
@@ -155,7 +168,19 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
   if (!order) {
     return (
       <div className="flex justify-center items-center h-96">
-        Commande non trouvée
+        <div className="text-center">
+          <p className="text-xl font-semibold text-red-500 mb-2">
+            Commande non trouvée
+          </p>
+          <p className="text-gray-600">
+            La commande demandée n'existe pas ou a été supprimée
+          </p>
+          <button
+            onClick={() => router.push("/orders")}
+            className="mt-4 px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-md hover:bg-orange-600">
+            Retour à la liste des commandes
+          </button>
+        </div>
       </div>
     );
   }
@@ -164,9 +189,11 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
     <div className="bg-white rounded-lg shadow-md p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
-          <div className="bg-gray-100 p-2 rounded">
+          <button
+            onClick={() => router.back()}
+            className="bg-gray-100 p-2 rounded hover:bg-gray-200 transition-colors">
             <ChevronLeft className="h-5 w-5 text-gray-500" />
-          </div>
+          </button>
           <h1 className="text-xl font-semibold">Détails de la commande</h1>
           <div className="bg-gray-100 p-2 rounded">
             <ChevronRight className="h-5 w-5 text-gray-500" />
@@ -175,13 +202,13 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
         <div className="flex items-center gap-4">
           <button
             onClick={handleEditOrder}
-            className="flex items-center gap-2 px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50">
+            className="flex items-center gap-2 px-4 py-2 border border-orange-500 text-orange-500 rounded-md hover:bg-orange-50">
             <Edit size={16} />
             Modifier la commande
           </button>
           <button
             onClick={handlePrintInvoice}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-md hover:bg-orange-600">
             <Printer size={16} />
             Imprimer la facture
           </button>
@@ -199,11 +226,11 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
             </div>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-sm font-medium">Restaurant:</span>
-              <span className="text-sm text-blue-500">
+              <span className="text-sm text-orange-500">
                 {order.restaurantId}
               </span>
             </div>
-            <button className="flex items-center gap-1 text-xs text-blue-500 mt-2 border border-blue-500 rounded-md px-2 py-1">
+            <button className="flex items-center gap-1 text-xs text-orange-500 mt-2 border border-orange-500 rounded-md px-2 py-1">
               <MapPin size={12} />
               {`Afficher l'emplacement sur la carte`}
             </button>
@@ -219,18 +246,25 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
 
             <div className="text-gray-600">Statut:</div>
             <div className="flex items-center">
-              <select
-                value={orderStatus}
-                onChange={handleStatusChange}
-                className="border rounded-md py-1 px-2 text-sm w-full">
-                <option value="pending">En attente</option>
-                <option value="confirmed">Confirmée</option>
-                <option value="preparing">En préparation</option>
-                <option value="ready">Prête</option>
-                <option value="delivering">En livraison</option>
-                <option value="completed">Terminée</option>
-                <option value="cancelled">Annulée</option>
-              </select>
+              {isUpdating ? (
+                <div className="flex items-center">
+                  <Loader2 className="h-4 w-4 text-orange-500 animate-spin mr-2" />
+                  <span>Mise à jour...</span>
+                </div>
+              ) : (
+                <select
+                  value={orderStatus}
+                  onChange={handleStatusChange}
+                  className="border rounded-md py-1 px-2 text-sm w-full">
+                  <option value="pending">En attente</option>
+                  <option value="confirmed">Confirmée</option>
+                  <option value="preparing">En préparation</option>
+                  <option value="ready">Prête</option>
+                  <option value="delivering">En livraison</option>
+                  <option value="completed">Terminée</option>
+                  <option value="cancelled">Annulée</option>
+                </select>
+              )}
             </div>
 
             <div className="text-gray-600">Moyen de paiement:</div>
@@ -259,7 +293,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
               <span>{order.notes || "Aucun"}</span>
               <button
                 onClick={handleAddReference}
-                className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
+                className="text-xs bg-gradient-to-r from-orange-400 to-orange-600 text-white px-2 py-1 rounded">
                 Ajouter
               </button>
             </div>
@@ -273,7 +307,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
           <div className="mt-4">
             <button
               onClick={handleAssignDelivery}
-              className="w-full bg-blue-500 text-white py-2 rounded-md flex items-center justify-center gap-2">
+              className="w-full bg-gradient-to-r from-orange-400 to-orange-600 text-white py-2 rounded-md flex items-center justify-center gap-2">
               <span>Assigner un livreur</span>
             </button>
           </div>
@@ -332,18 +366,22 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                           : null}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                        {/* {formatPrice(
-                          item.totalPrice ||
+                        {formatPrice(
+                          item.subtotal ||
                             parseFloat(String(item.price || 0)) *
                               parseFloat(String(item.quantity || 1)),
-                        )}{" "} */}
-                        100 MAD
+                        )}{" "}
+                        MAD
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4}>Aucun article trouvé</td>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-4 text-center text-sm text-gray-500">
+                      Aucun article trouvé
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -411,12 +449,14 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
               </h3>
             </div>
             <div className="flex items-center gap-3 mb-3">
-              <div className="h-12 w-12 bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
-                {/* Client avatar would go here */}
+              <div className="h-12 w-12 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <span className="text-gray-500 font-medium text-lg">
+                  {order.customerName?.charAt(0)}
+                </span>
               </div>
               <div>
                 <div className="font-medium">{order.customerName}</div>
-                <div className="text-sm text-gray-500">17 Commandes</div>
+                <div className="text-sm text-gray-500">Client</div>
               </div>
             </div>
             <div className="space-y-1 text-sm">
@@ -438,7 +478,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
               <h3 className="font-medium flex items-center gap-2">
                 <span>Informations de livraison</span>
               </h3>
-              <button className="text-blue-500">
+              <button className="text-orange-500">
                 <PenLine size={16} />
               </button>
             </div>
@@ -451,17 +491,16 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                 <span className="text-gray-500">Contact:</span>
                 <span className="col-span-2">{order.customerPhone}</span>
               </div>
-              {order.customerAddress && (
-                <>
-                  <div className="grid grid-cols-3 gap-1">
-                    <span className="text-gray-500">Adresse:</span>
-                    <span className="col-span-2">{order.customerAddress}</span>
-                  </div>
-                </>
+              {order.customerAddress ? (
+                <div className="grid grid-cols-3 gap-1">
+                  <span className="text-gray-500">Adresse:</span>
+                  <span className="col-span-2">{order.customerAddress}</span>
+                </div>
+              ) : (
+                <div className="pt-2 mt-2 border-t border-gray-200 text-center">
+                  <p className="text-gray-500">Adresse non définie</p>
+                </div>
               )}
-              <div className="pt-2 mt-2 border-t border-gray-200 text-center">
-                <p className="text-gray-500">Non défini</p>
-              </div>
             </div>
           </div>
 

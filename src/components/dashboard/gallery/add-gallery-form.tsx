@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus } from "lucide-react";
+import { ImageIcon, Loader2, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -212,20 +212,29 @@ export const RestaurantGallery = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Image</FormLabel>
-                        <FormControl className="bg-gradient-to-b from-fuchsia-950 to-fuchsia-800">
-                          <UploadButton
-                            endpoint="imageUploader"
-                            onClientUploadComplete={(res) => {
-                              console.log(res[0].ufsUrl! as any);
-                              setImage(res[0].ufsUrl!);
-                              form.setValue("image", res[0].ufsUrl!);
-                              toast.success("Image uploaded successfully!");
-                            }}
-                            onUploadError={(error: Error) => {
-                              console.log(error.message);
-                              toast.error(error.message);
-                            }}
-                          />
+                        <FormControl className="bg-gradient-to-t from-slate-950 to-slate-500 rounded-sm">
+                          <div className="flex flex-col items-center justify-center py-4">
+                            <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
+                            <p className="text-sm font-medium">
+                              Drag & drop or click to upload
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              PNG, JPG, WEBP up to 5MB
+                            </p>
+                            <UploadButton
+                              endpoint="imageUploader"
+                              onClientUploadComplete={(res) => {
+                                console.log(res[0].ufsUrl! as any);
+                                setImage(res[0].ufsUrl!);
+                                form.setValue("image", res[0].ufsUrl!);
+                                toast.success("Image uploaded successfully!");
+                              }}
+                              onUploadError={(error: Error) => {
+                                console.log(error.message);
+                                toast.error(error.message);
+                              }}
+                            />
+                          </div>
                         </FormControl>
                         {imageUpload && (
                           <div className="mt-2 relative w-full h-48">

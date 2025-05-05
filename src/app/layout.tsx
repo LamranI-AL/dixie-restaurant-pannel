@@ -10,6 +10,7 @@ import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing/core";
 // import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import QueryProvider from "@/providers/QueryProvider";
+import { Toaster } from "sonner";
 // import "@uploadthing/react/styles.css";
 
 const geistSans = Geist({
@@ -41,6 +42,7 @@ export default function RootLayout({
             <AuthProvider>{children}</AuthProvider>
           </QueryProvider>
         </ThemeProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

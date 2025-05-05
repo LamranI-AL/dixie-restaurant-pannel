@@ -16,60 +16,84 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Order, OrderStatistics, OrderStatus } from "@/lib/types";
+import { revalidatePath } from "next/cache";
+
+// Génère un numéro de commande unique basé sur la date et un nombre aléatoire
+function generateOrderNumber() {
+  const prefix = "10";
+  const timestamp = Date.now().toString().slice(-4);
+  const random = Math.floor(Math.random() * 10000)
+    .toString()
+    .padStart(4, "0");
+  return `${prefix}${timestamp}${random}`;
+}
 
 // CREATE: Add a new order
-export async function addOrder(data: Omit<Order, "id">) {
-  const {
-    orderNumber,
-    customerName,
-    customerPhone,
-    customerEmail,
-    customerAddress,
-    items,
-    subtotal,
-    OrderStatus,
-    tax,
-    deliveryFee,
-    packagingFee,
-    discount,
-    total,
-    paymentStatus,
-    paymentMethod,
-    orderStatus,
-    orderDate,
-    restaurantId,
-    notes,
-  } = data;
-  const newOrder = {
-    orderNumber,
-    customerName,
-    customerPhone,
-    customerEmail,
-    customerAddress,
-    items,
-    subtotal,
-    OrderStatus,
-    tax,
-    deliveryFee,
-    packagingFee,
-    discount,
-    total,
-    paymentStatus,
-    paymentMethod,
-    orderStatus,
-    orderDate: new Date(orderDate),
-    // deliveryDate: new Date(deliveryDate),
-    restaurantId,
-    notes,
-  };
+export async function addOrder(data: any) {
   try {
-    const orderRef = collection(db, "orders");
-    const docRef = await addDoc(orderRef, newOrder);
+    // Générer un numéro de commande unique
+    const orderNumber = generateOrderNumber();
 
-    return { success: true, id: docRef.id };
+    // Préparer l'objet de commande en se basant sur le type Order
+    const newOrder = {
+      orderNumber,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      customerEmail: data.customerEmail || null,
+      customerAddress: data.customerAddress || null,
+      items: data.items.map((item: any) => ({
+        id: item.id,
+        foodId: item.foodId || "", // ID du plat
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        variations: item.variations || [],
+        addons: item.addons || [],
+        subtotal: item.subtotal, // Utiliser subtotal au lieu de totalPrice pour correspondre à l'interface
+      })),
+      subtotal: data.subtotal,
+      OrderStatus:
+        data.OrderStatus ||
+        (data.orderType === "delivery"
+          ? "Livraison"
+          : data.orderType === "pickup"
+          ? "À emporter"
+          : "Sur place"),
+      tax: data.tax,
+      deliveryFee: data.deliveryFee,
+      packagingFee: data.packagingFee,
+      discount: data.discount || 0,
+      total: data.total,
+      paymentStatus: data.paymentStatus || "unpaid",
+      paymentMethod: data.paymentMethod,
+      orderStatus: data.orderStatus || "confirmed",
+      orderDate: new Date(),
+      restaurantId: data.restaurantId,
+      notes: data.notes || null,
+    };
+
+    // Enregistrer la commande dans Firebase en utilisant l'API modulaire
+    const ordersRef = collection(db, "orders");
+    const docRef = await addDoc(ordersRef, newOrder);
+
+    // Mettre à jour l'ID avec l'ID généré par Firebase
+    const orderDoc = doc(db, "orders", docRef.id);
+    await updateDoc(orderDoc, { id: docRef.id });
+
+    // Revalider le chemin pour afficher les dernières données
+    revalidatePath("/orders");
+
+    return {
+      success: true,
+      orderId: docRef.id,
+      message: "Commande créée avec succès",
+    };
   } catch (error) {
-    console.error("Error adding order:", error);
-    return { success: false, error: (error as Error).message };
+    console.error("Erreur lors de la création de la commande:", error);
+    return {
+      success: false,
+      error: "Une erreur est survenue lors de la création de la commande",
+    };
   }
 }
 
