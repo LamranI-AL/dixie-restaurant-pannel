@@ -55,7 +55,7 @@ export async function addFood(data: Food) {
     createdAt: new Date(),
   };
   try {
-    const foodRef = collection(db, "foods");
+    const foodRef = collection(db, "products");
     const docRef = await addDoc(foodRef, newDeliveryman);
 
     return { success: true, id: docRef.id };
@@ -68,7 +68,7 @@ export async function addFood(data: Food) {
 // READ: Get all food items
 export async function getAllFoods() {
   try {
-    const foodRef = collection(db, "foods");
+    const foodRef = collection(db, "products");
     const querySnapshot = await getDocs(foodRef);
 
     const foods: Food[] = [];
@@ -86,7 +86,7 @@ export async function getAllFoods() {
 // READ: Get food items by category ID
 export async function getFoodsByCategory(categoryId: string) {
   try {
-    const foodRef = collection(db, "foods");
+    const foodRef = collection(db, "products");
     const q = query(foodRef, where("categoryId", "==", categoryId));
     const querySnapshot = await getDocs(q);
 
@@ -104,7 +104,7 @@ export async function getFoodsByCategory(categoryId: string) {
 
 export async function getFoodById(id: string) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     const docSnap = await getDoc(foodRef);
 
     if (docSnap.exists()) {
@@ -162,7 +162,7 @@ export async function getTopRatedFoods(limit_count: number = 10) {
 // UPDATE: Update a food item
 export async function updateFood(id: string, data: Partial<Food>) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     await updateDoc(foodRef, {
       ...data,
       updatedAt: new Date(),
@@ -178,7 +178,7 @@ export async function updateFood(id: string, data: Partial<Food>) {
 // UPDATE: Toggle food availability
 export async function toggleFoodAvailability(id: string, isAvailable: boolean) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     await updateDoc(foodRef, {
       isAvailable: isAvailable,
       updatedAt: new Date(),
@@ -219,7 +219,7 @@ export async function addVariationToFood(id: string, variation: Variation) {
 // UPDATE: Add addon to food
 export async function addAddonToFood(id: string, addon: Addon) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     const foodSnap = await getDoc(foodRef);
 
     if (!foodSnap.exists()) {
@@ -244,7 +244,7 @@ export async function addAddonToFood(id: string, addon: Addon) {
 // DELETE: Delete a food item
 export async function deleteFood(id: string) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     await deleteDoc(foodRef);
 
     return { success: true };
@@ -257,7 +257,7 @@ export async function deleteFood(id: string) {
 // SEARCH: Search food items by name
 export async function searchFoods(searchTerm: string) {
   try {
-    const foodRef = collection(db, "foods");
+    const foodRef = collection(db, "products");
     const querySnapshot = await getDocs(foodRef);
 
     const foods: Food[] = [];

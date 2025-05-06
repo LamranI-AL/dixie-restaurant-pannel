@@ -22,125 +22,7 @@ import Link from "next/link";
 import { getAllOrders } from "@/actions/ordres";
 import { formatDate } from "@/utils/format-date";
 import AddOrderForm from "@/components/command/OrderForm";
-
-// Mock order data
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "100160",
-    customerName: "Jane Doe",
-    customerPhone: "+8**********",
-    customerEmail: "jane.doe@example.com",
-    items: [],
-    subtotal: 1300,
-    tax: 102.49,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 0,
-    total: 1402.49,
-    paymentStatus: "unpaid",
-    paymentMethod: "cash",
-    orderStatus: "pending",
-    orderDate: new Date("2025-04-05T10:13:00"),
-    restaurantId: "rest1",
-    deliveryDate: new Date("2025-04-05T10:13:00"),
-    notes: "Please deliver to the back door.",
-    customerAddress: "123 Main St, Springfield, IL",
-    OrderStatus: "pending",
-  },
-  {
-    id: "2",
-    orderNumber: "100157",
-    customerName: "Brooklyn Simmons",
-    customerPhone: "+8**********",
-    customerEmail: "brooklyn@example.com",
-    items: [],
-    subtotal: 2200,
-    tax: 199.99,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 0,
-    total: 2399.99,
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    orderStatus: "delivered",
-    orderDate: new Date("2024-01-02T06:44:00"),
-    restaurantId: "rest1",
-    deliveryDate: new Date("2025-04-05T10:13:00"),
-    notes: "Please deliver to the back door.",
-    customerAddress: "123 Main St, Springfield, IL",
-    OrderStatus: "pending",
-  },
-  {
-    id: "3",
-    orderNumber: "100156",
-    customerName: "John Doe",
-    customerPhone: "+8**********",
-    customerEmail: "john.doe@example.com",
-    items: [],
-    subtotal: 5800,
-    tax: 516.64,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 0,
-    total: 6316.64,
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    orderStatus: "delivered",
-    orderDate: new Date("2023-11-21T04:21:00"),
-    restaurantId: "rest1",
-    deliveryDate: new Date("2025-04-05T10:13:00"),
-    notes: "Please deliver to the back door.",
-    customerAddress: "123 Main St, Springfield, IL",
-    OrderStatus: "pending",
-  },
-  {
-    id: "4",
-    orderNumber: "100155",
-    customerName: "John Doe",
-    customerPhone: "+8**********",
-    customerEmail: "john.doe@example.com",
-    items: [],
-    subtotal: 2600,
-    tax: 227.14,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 0,
-    total: 2827.14,
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    orderStatus: "delivered",
-    orderDate: new Date("2023-11-21T04:08:00"),
-    restaurantId: "rest1",
-    deliveryDate: new Date("2025-04-05T10:13:00"),
-    notes: "Please deliver to the back door.",
-    customerAddress: "123 Main St, Springfield, IL",
-    OrderStatus: "pending",
-  },
-  {
-    id: "5",
-    orderNumber: "100154",
-    customerName: "John Doe",
-    customerPhone: "+8**********",
-    customerEmail: "john.doe@example.com",
-    items: [],
-    subtotal: 2600,
-    tax: 227.14,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 0,
-    total: 2827.14,
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    orderStatus: "delivered",
-    orderDate: new Date("2023-11-21T04:04:00"),
-    restaurantId: "rest1",
-    deliveryDate: new Date("2025-04-05T10:13:00"),
-    notes: "Please deliver to the back door.",
-    customerAddress: "123 Main St, Springfield, IL",
-    OrderStatus: "pending",
-  },
-];
+import { getAllUsersOrders } from "@/actions/user";
 
 const getStatusColor = (status: OrderStatus): string => {
   const statusColors: Record<OrderStatus, string> = {
@@ -210,10 +92,10 @@ export default function OrdersPage() {
       leftStart,
       (y += 6),
     );
-    doc.text(`Client : ${order.customerName}`, leftStart, (y += 6));
-    doc.text(`Téléphone : ${order.customerPhone}`, leftStart, (y += 6));
-    doc.text(`Email : ${order.customerEmail}`, leftStart, (y += 6));
-    doc.text(`Adresse : ${order.customerAddress}`, leftStart, (y += 6));
+    // doc.text(`Client : ${order.customerName}`, leftStart, (y += 6));
+    // doc.text(`Téléphone : ${order.customerPhone}`, leftStart, (y += 6));
+    // doc.text(`Email : ${order.customerEmail}`, leftStart, (y += 6));
+    // doc.text(`Adresse : ${order.customerAddress}`, leftStart, (y += 6));
 
     // Items Table
     autoTable(doc, {
@@ -266,7 +148,7 @@ export default function OrdersPage() {
     );
     doc.setFont("helvetica", "bold");
     doc.text(
-      `Total : ${order.total ? order.total.toFixed(2) : "0"} MAD`,
+      `Total : ${order.totalAmount ? order.totalAmount.toFixed(2) : "0"} MAD`,
       rightX,
       (lineY += lineSpacing),
     );
@@ -291,7 +173,7 @@ export default function OrdersPage() {
   };
   useEffect(() => {
     const fetchFoods = async () => {
-      const { success, orders } = await getAllOrders();
+      const { success, orders } = await getAllUsersOrders();
       console.log(orders);
       console.log(success);
       if (success) {
@@ -301,6 +183,9 @@ export default function OrdersPage() {
       }
     };
     fetchFoods();
+    // const fetchOrders = async()=>{
+    //   const ordes
+    // }
   }, []);
   return (
     <div className="space-y-4">
@@ -330,7 +215,7 @@ export default function OrdersPage() {
           </svg>
           <h2 className="text-2xl font-bold">All Orders</h2>
           <div className="ml-2 flex h-7 items-center justify-center rounded-full bg-blue-100 px-3 text-xs font-medium text-blue-500">
-            {mockOrders.length} Orders
+            {orders.length} Orders
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -404,7 +289,7 @@ export default function OrdersPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-12 text-center">SI</TableHead>
                 <TableHead>Order ID</TableHead>
-                <TableHead>Order Date</TableHead>
+                <TableHead>Order date</TableHead>
                 <TableHead>Customer Information</TableHead>
                 <TableHead>Total Amount</TableHead>
                 <TableHead>Order Status</TableHead>
@@ -419,9 +304,9 @@ export default function OrdersPage() {
                   <TableCell>{formatDate(order.orderDate)}</TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{order.customerName}</div>
+                      <div className="font-medium">{order.userId}</div>
                       <div className="text-muted-foreground text-xs">
-                        {order.customerPhone}
+                        {order.userId}
                       </div>
                     </div>
                   </TableCell>
@@ -433,8 +318,10 @@ export default function OrdersPage() {
                       className={`text-xs ${getPaymentStatusColor(
                         order.paymentStatus,
                       )}`}>
-                      {order.paymentStatus.charAt(0).toUpperCase() +
-                        order.paymentStatus.slice(1)}
+                      {order.paymentStatus
+                        ? order.paymentStatus.charAt(0).toUpperCase() +
+                          order.paymentStatus.slice(1)
+                        : "en cours"}
                     </div>
                   </TableCell>
                   <TableCell>

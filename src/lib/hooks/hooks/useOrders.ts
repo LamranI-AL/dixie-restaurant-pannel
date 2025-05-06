@@ -55,7 +55,7 @@ export function useOrders() {
       createdAt: new Date().toISOString(),
     };
     const docRef = await addDoc(collection(db, "orders"), orderWithTimestamp);
-    return { id: docRef.id, ...orderWithTimestamp } as Order;
+    return { id: docRef.id, ...orderWithTimestamp } as any;
   };
 
   const updateOrderStatus = async ({

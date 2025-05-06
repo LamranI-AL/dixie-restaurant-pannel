@@ -11,6 +11,10 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,17 +27,33 @@ import {
   UserCheck,
   CookingPot,
   AreaChart as ChartIcon,
+  Clock,
+  PackageCheck,
+  CheckCircle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { YearlySales, TrendingFood } from "@/lib/types";
 import Image from "next/image";
-import { DateFilterType, getOrderStatistics } from "@/actions/ordres";
-import { useRouter } from "next/navigation";
+// import { getOrderStatistics } from "@/actions/ordres";
 import { getPopularFoods } from "@/actions/food";
 import GalleryPage from "@/components/dashboard/gallery/pageUpGall";
-// import { useCategories } from "@/lib/hooks/hooks/useCategories";
 import { useOrders } from "@/lib/hooks/hooks/useOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { getOrderStatistics, getOrderStatisticsAlt } from "@/actions/user";
+
+// Type pour les statistiques de commandes
+interface OrderStats {
+  pending: number;
+  processing: number;
+  delivered: number;
+  cancelled: number;
+  total: number;
+}
+
+// Couleurs pour le graphique en secteurs
+const COLORS = ["#ffa726", "#42a5f5", "#66bb6a", "#ef5350"];
 
 // Mock data for yearly sales
 const yearlyData: YearlySales[] = [
@@ -52,12 +72,63 @@ const yearlyData: YearlySales[] = [
 ];
 
 export default function DashboardPage() {
-  const { statistics } = useOrders();
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [popFoods, setPopFoods] = useState<TrendingFood[]>([]);
-  const router = useRouter();
+  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Préparer les données pour le graphique en secteurs des commandes
+  const getOrderChartData = () => {
+    if (!orderStats) return [];
+
+    return [
+      { name: "En attente", value: orderStats.pending, color: COLORS[0] },
+      { name: "En traitement", value: orderStats.processing, color: COLORS[1] },
+      { name: "Livrées", value: orderStats.delivered, color: COLORS[2] },
+      { name: "Annulées", value: orderStats.cancelled, color: COLORS[3] },
+    ];
+  };
+
+  // Charger les statistiques de commandes
+  useEffect(() => {
+    const fetchOrderStats = async () => {
+      setStatsLoading(true);
+      try {
+        const result = await getOrderStatistics();
+        if (result.success && result.statistics) {
+          setOrderStats(result.statistics);
+          toast({
+            title: "Statistiques chargées",
+            description:
+              "Les statistiques de commandes ont été chargées avec succès",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Erreur de chargement",
+            description:
+              result.error ||
+              "Impossible de charger les statistiques de commandes",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des statistiques:", error);
+        toast({
+          title: "Erreur",
+          description:
+            "Une erreur est survenue lors du chargement des statistiques",
+          variant: "destructive",
+        });
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchOrderStats();
+  }, [toast]);
 
   useEffect(() => {
     const fetchPopularFoods = async () => {
@@ -67,27 +138,26 @@ export default function DashboardPage() {
 
         if (popFood.success) {
           setPopFoods(popFood.trindingfoods as TrendingFood[]);
-          // Success toast notification
           toast({
-            title: "Popular foods loaded",
-            description: "Successfully loaded trending food items",
+            title: "Plats populaires chargés",
+            description: "Les plats tendance ont été chargés avec succès",
             variant: "default",
           });
         } else {
-          // Error toast notification
           toast({
-            title: "Failed to load popular foods",
+            title: "Échec du chargement des plats populaires",
             description:
-              popFood.error || "An error occurred while loading trending foods",
+              popFood.error ||
+              "Une erreur est survenue lors du chargement des plats tendance",
             variant: "destructive",
           });
         }
       } catch (error) {
-        console.error("Error fetching popular foods:", error);
-        // Error toast notification
+        console.error("Erreur lors du chargement des plats populaires:", error);
         toast({
-          title: "Error",
-          description: "Failed to load trending foods. Please try again later.",
+          title: "Erreur",
+          description:
+            "Échec du chargement des plats tendance. Veuillez réessayer plus tard.",
           variant: "destructive",
         });
       } finally {
@@ -95,27 +165,13 @@ export default function DashboardPage() {
       }
     };
 
-    // Simulate chart loading
+    // Simuler le chargement du graphique
     setTimeout(() => {
       setIsChartLoading(false);
     }, 1500);
 
     fetchPopularFoods();
   }, [toast]);
-
-  const calculateTotal = (): number => {
-    return (
-      (statistics?.confirmed || 0) +
-      (statistics?.cooking || 0) +
-      (statistics?.ready || 0) +
-      (statistics?.on_the_way || 0) +
-      (statistics?.delivered || 0) +
-      (statistics?.refunded || 0) +
-      (statistics?.scheduled || 0)
-    );
-  };
-
-  const total = calculateTotal();
 
   // Stats card skeleton loader component
   const StatsCardSkeleton = () => (
@@ -154,9 +210,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Tableau de bord</h2>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">Followup</Button>
+          <Button
+            variant="outline"
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4" /> Actualiser
+          </Button>
           <Button variant="outline">
             <svg
               width="15"
@@ -176,122 +237,122 @@ export default function DashboardPage() {
       </div>
 
       {/* Order Statistics Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-1">
-        <div className="">
-          {!statistics ? (
+      <div className="grid grid-cols-4 gap-4 md:grid-cols-3">
+        {/* Cartes de statistiques des commandes */}
+        <div className="grid grid-cols-4 gap-4 md:col-span-1 lg:col-span-2">
+          {statsLoading ? (
             <>
               <StatsCardSkeleton />
               <StatsCardSkeleton />
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <Card className="border border-gray-200 bg-green-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center mb-1">
-                      <ShoppingBag className="mr-3 text-green-600" />
-                      <div className="text-3xl font-bold text-green-600">
-                        {statistics.confirmed}
-                      </div>
+              <Card className="border border-gray-200 bg-amber-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center mb-1">
+                    <Clock className="mr-3 text-amber-600" />
+                    <div className="text-3xl font-bold text-amber-600">
+                      {orderStats?.pending || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">Confirmed</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-gray-200 bg-red-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center mb-1">
-                      <CookingPot className="mr-3 text-red-600" />
-                      <div className="text-3xl font-bold text-red-600">
-                        {statistics.cooking}
-                      </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">En attente</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-gray-200 bg-blue-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center mb-1">
+                    <CookingPot className="mr-3 text-blue-600" />
+                    <div className="text-3xl font-bold text-blue-600">
+                      {orderStats?.processing || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">Cooking</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <Card className="border border-gray-200 bg-amber-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center mb-1">
-                      <Package className="mr-3 text-amber-600" />
-                      <div className="text-3xl font-bold text-amber-600">
-                        {statistics.ready}
-                      </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">En traitement</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-gray-200 bg-green-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center mb-1">
+                    <CheckCircle className="mr-3 text-green-600" />
+                    <div className="text-3xl font-bold text-green-600">
+                      {orderStats?.delivered || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Ready for delivery
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-gray-200 bg-red-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center mb-1">
-                      <Truck className="mr-3 text-red-600" />
-                      <div className="text-3xl font-bold text-red-600">
-                        {statistics.on_the_way}
-                      </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Livrées</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-gray-200 bg-red-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center mb-1">
+                    <XCircle className="mr-3 text-red-600" />
+                    <div className="text-3xl font-bold text-red-600">
+                      {orderStats?.cancelled || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Food on the way
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Annulées</p>
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:col-span-1">
-          <div className="col-span-1">
-            <Card className="h-full flex flex-col justify-center">
-              {!statistics ? (
-                <CardContent className="pt-6 flex flex-col items-center justify-center space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center w-full">
-                      <Skeleton className="h-5 w-5 mr-2 rounded-full" />
-                      <Skeleton className="h-4 w-20 flex-1" />
-                      <Skeleton className="h-6 w-12" />
-                    </div>
-                  ))}
-                </CardContent>
+        {/* Graphique en secteurs des commandes */}
+        <div className="md:col-span-1 lg:col-span-1">
+          <Card className="h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium flex items-center">
+                <ShoppingBag className="mr-2 h-5 w-5 text-muted-foreground" />
+                Répartition des commandes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center">
+              {statsLoading ? (
+                <div className="flex flex-col items-center justify-center w-full h-48">
+                  <Skeleton className="h-40 w-40 rounded-full" />
+                  <Skeleton className="h-4 w-40 mt-4" />
+                </div>
               ) : (
-                <CardContent className="pt-6 flex flex-col items-center justify-center space-y-2">
-                  <div className="flex items-center w-full">
-                    <Truck className="mr-2 h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">Delivered</div>
-                    <div className="text-xl font-semibold text-orange-500">
-                      {statistics.delivered}
-                    </div>
+                <>
+                  <div className="h-48 w-full">
+                    <ResponsiveContainer
+                      width="100%"
+                      height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getOrderChartData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({ name, percent }) =>
+                            `${name} ${(percent * 100).toFixed(0)}%`
+                          }>
+                          {getOrderChartData().map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.color}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value) => [
+                            `${value} commandes`,
+                            "Quantité",
+                          ]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-
-                  <div className="flex items-center w-full">
-                    <RotateCcw className="mr-2 h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">Refunded</div>
-                    <div className="text-xl font-semibold text-orange-500">
-                      {statistics.refunded}
-                    </div>
+                  <div className="mt-2 text-center">
+                    <p className="text-lg font-semibold">
+                      Total: {orderStats?.total || 0} commandes
+                    </p>
                   </div>
-                  <div className="flex items-center w-full">
-                    <Calendar className="mr-2 h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">Scheduled</div>
-                    <div className="text-xl font-semibold text-orange-500">
-                      {statistics.scheduled}
-                    </div>
-                  </div>
-                  <div className="flex items-center w-full">
-                    <UserCheck className="mr-2 h-5 w-5 text-muted-foreground" />
-                    <div className="flex-1">All</div>
-                    <div className="text-xl font-semibold text-orange-500">
-                      {total}
-                    </div>
-                  </div>
-                </CardContent>
+                </>
               )}
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -302,7 +363,7 @@ export default function DashboardPage() {
             <div className="flex items-center">
               <ChartIcon className="mr-2 h-5 w-5 text-muted-foreground" />
               <CardTitle className="text-lg font-medium">
-                Yearly Statistics
+                Statistiques Annuelles
               </CardTitle>
             </div>
           </CardHeader>
@@ -377,7 +438,7 @@ export default function DashboardPage() {
                       stroke="#8884d8"
                       fillOpacity={1}
                       fill="url(#colorCommission)"
-                      name="Commission given"
+                      name="Commission donnée"
                     />
                     <Area
                       type="monotone"
@@ -385,7 +446,7 @@ export default function DashboardPage() {
                       stroke="#82ca9d"
                       fillOpacity={1}
                       fill="url(#colorSales)"
-                      name="Total earning"
+                      name="Gains totaux"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -394,11 +455,11 @@ export default function DashboardPage() {
             <div className="flex justify-center mt-4 space-x-6">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-                <span className="text-sm">Commission given : $ 0.00</span>
+                <span className="text-sm">Commission donnée : 0,00 €</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
-                <span className="text-sm">Total earning : $ 0.00</span>
+                <span className="text-sm">Gains totaux : 0,00 €</span>
               </div>
             </div>
           </CardContent>
@@ -413,9 +474,16 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <Pizza className="mr-2 h-5 w-5 text-muted-foreground" />
                 <CardTitle className="text-lg font-medium">
-                  Top Selling Foods
+                  Plats les plus vendus
                 </CardTitle>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs"
+                onClick={() => window.location.reload()}>
+                Actualiser
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -430,7 +498,7 @@ export default function DashboardPage() {
                 popFoods.map((food) => (
                   <div
                     key={food.id}
-                    className="relative group overflow-hidden rounded-lg">
+                    className="relative group overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
                     <div className="relative h-44 w-full overflow-hidden rounded-lg">
                       <Image
                         width={500}
@@ -439,11 +507,11 @@ export default function DashboardPage() {
                         alt={food.name}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      <div className="absolute top-2 left-2 bg-gray-800 text-white px-2 py-1 rounded text-xs">
-                        Sold : {food.discount}
+                      <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                        Vendu : {food.discount}
                       </div>
                     </div>
-                    <div className="mt-2 text-center">
+                    <div className="mt-2 text-center p-2">
                       <h3 className="text-sm font-medium line-clamp-1">
                         {food.name}
                       </h3>
@@ -455,7 +523,7 @@ export default function DashboardPage() {
                 <div className="col-span-3 text-center py-8">
                   <Pizza className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
                   <p className="mt-2 text-muted-foreground">
-                    No trending foods found
+                    Aucun plat tendance trouvé
                   </p>
                 </div>
               )}
@@ -473,13 +541,13 @@ export default function DashboardPage() {
             variant="ghost"
             size="sm"
             className="text-muted-foreground">
-            Restaurant settings
+            Paramètres du restaurant
           </Button>
           <Button
             variant="ghost"
             size="sm"
             className="text-muted-foreground">
-            Profile
+            Profil
           </Button>
           <Button
             variant="ghost"

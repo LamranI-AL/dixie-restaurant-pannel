@@ -33,6 +33,8 @@ export function PopoverButton({ buttonName }: PopoverProps) {
       image,
       status: true,
       userId: currentUser?.uid as string,
+      description: "",
+      longDescription: "",
     };
     try {
       await addCategory(newCategory);

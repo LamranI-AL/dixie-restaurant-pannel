@@ -144,7 +144,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <SidebarItem
             href="/categories"
             icon={FolderTree}
-            label="Catégories"
+            label="Cuisines"
             isActive={location === "/categories"}
           />
           <SidebarItem

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 // import { createOrder } from "@/actions/ordres"; // Server Action pour créer une commande
 import { Loader2, PlusCircle, Trash2, ChevronLeft } from "lucide-react";
-import { OrderItem, OrderStatus } from "@/lib/types"; // Importation des types
+import { Addon, OrderItem, OrderStatus, Restaurant } from "@/lib/types"; // Importation des types
 
 // Importation des composants shadcn
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { addOrder } from "@/actions/ordres";
+import { createOrderForUser } from "@/actions/user";
 
 // Type pour les éléments de commande (adapté à votre type OrderItem)
 // interface TempOrderItem {
@@ -55,17 +56,11 @@ import { addOrder } from "@/actions/ordres";
 //   subtotal: number;
 // }
 
-// Type pour le restaurant
-interface Restaurant {
-  id: string;
-  name: string;
-}
-
 export default function AddOrderForm() {
   const router = useRouter();
 
   // État pour charger les restaurants (à remplacer par votre vraie API)
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([
+  const [restaurants, setRestaurants] = useState<Restaurant[] | any[]>([
     { id: "1", name: "Restaurant Dixie" },
   ]);
 
@@ -190,7 +185,7 @@ export default function AddOrderForm() {
       name: newItem.name,
       price: price,
       quantity: quantity,
-      addons: [...tempAddons],
+      addons: [...tempAddons] as Addon[],
 
       subtotal: totalItemPrice,
       foodId: "", // Ensure this is always a string
@@ -214,9 +209,9 @@ export default function AddOrderForm() {
   // Calculer les totaux
   const calculateTotals = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * 0.2; // TVA 20%
-    const deliveryFee = formData.orderType === "delivery" ? 30 : 0; // Frais de livraison
-    const packagingFee = 5; // Frais d'emballage
+    const tax = subtotal * 0.01; // TVA 20%
+    const deliveryFee = formData.orderType === "delivery" ? 15 : 0; // Frais de livraison
+    const packagingFee = 1.5; // Frais d'emballage
     const total = subtotal + tax + deliveryFee + packagingFee;
 
     return {
@@ -284,7 +279,7 @@ export default function AddOrderForm() {
       };
 
       // Envoi des données au serveur avec l'action serveur
-      const result = await addOrder(orderData as any); // Assurez-vous que le type est correct
+      const result = await createOrderForUser("adminUser11", orderData as any); // Assurez-vous que le type est correct
 
       if (result.success) {
         toast.success("Commande créée avec succès");

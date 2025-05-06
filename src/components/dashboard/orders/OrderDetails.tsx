@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Order, OrderStatus } from "@/lib/types";
+import { Order, OrderStatus, User } from "@/lib/types";
 import {
   Printer,
   PenLine,
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { getOrderById, updateOrderStatus } from "@/actions/ordres";
 import { toast } from "sonner"; // Assuming you're using react-hot-toast
+import { getGlobalOrderById, getUserById, getUserByUid } from "@/actions/user";
+import { formatDate } from "@/utils/format-date";
 
 // Fonction utilitaire pour formater les prix
 const formatPrice = (price: number): string => {
@@ -32,41 +34,41 @@ const formatPrice = (price: number): string => {
     return "0.00";
   }
 };
-
+const totalCalculat = () => {};
 // Fonction utilitaire pour formater les dates
-const formatDateFn = (date: Date) => {
-  if (!date) return "Date non disponible";
+// const formatDateFn = (date: Date) => {
+//   if (!date) return "Date non disponible";
 
-  let d: Date;
+//   let d: Date;
 
-  // Si c'est un Timestamp Firebase (avec méthode toDate())
-  if (date && typeof date === "object" && date !== undefined) {
-    d = new Date(date);
-  }
-  // Si c'est une chaîne ou un nombre
-  else if (typeof date === "string" || typeof date === "number") {
-    d = new Date(date);
-  }
-  // Gestion des cas imprévus
-  else {
-    return "Format de date invalide";
-  }
+//   // Si c'est un Timestamp Firebase (avec méthode toDate())
+//   if (date && typeof date === "object" && date !== undefined) {
+//     d = new Date(date);
+//   }
+//   // Si c'est une chaîne ou un nombre
+//   else if (typeof date === "string" || typeof date === "number") {
+//     d = new Date(date);
+//   }
+//   // Gestion des cas imprévus
+//   else {
+//     return "Format de date invalide";
+//   }
 
-  const day = d.getDate().toString().padStart(2, "0");
-  const month = new Intl.DateTimeFormat("fr", { month: "short" }).format(d);
-  const year = d.getFullYear();
-  const hours = d.getHours();
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const formattedHours = hours % 12 || 12;
+//   const day = d.getDate().toString().padStart(2, "0");
+//   const month = new Intl.DateTimeFormat("fr", { month: "short" }).format(d);
+//   const year = d.getFullYear();
+//   const hours = d.getHours();
+//   const minutes = d.getMinutes().toString().padStart(2, "0");
+//   const ampm = hours >= 12 ? "PM" : "AM";
+//   const formattedHours = hours % 12 || 12;
 
-  return (
-    <div>
-      <div>{`${day} ${month} ${year}`}</div>
-      <div className="text-muted-foreground text-xs">{`${formattedHours}:${minutes} ${ampm}`}</div>
-    </div>
-  );
-};
+//   return (
+//     <div>
+//       <div>{`${day} ${month} ${year}`}</div>
+//       <div className="text-muted-foreground text-xs">{`${formattedHours}:${minutes} ${ampm}`}</div>
+//     </div>
+//   );
+// };
 
 interface OrderDetailsProps {
   orderId: string;
@@ -78,17 +80,21 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [orderStatus, setOrderStatus] = useState<OrderStatus | "">("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [userOrder, setUser] = useState<User>();
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
     async function fetchOrder() {
       setLoading(true);
       try {
-        const result = await getOrderById(orderId);
+        const result = await getGlobalOrderById(orderId);
+        console.log(result);
         if (result.success) {
           // Cloner l'objet pour éviter les problèmes de sérialisation
           const sanitizedOrder = JSON.parse(JSON.stringify(result.order));
           setOrder(sanitizedOrder);
-          setOrderStatus(sanitizedOrder?.orderStatus || "");
+          setUserId(sanitizedOrder.userId);
+          setOrderStatus((order?.OrderStatus as OrderStatus) || "");
 
           // Toast de succès
           toast.success("Détails de la commande chargés avec succès");
@@ -102,11 +108,33 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
         setLoading(false);
       }
     }
+    // const fetchUserOrder = async () => {
+    //   try {
+    //     const user = await getUserById(order?.userId as string);
+    //     setUser(user.user);
+    //     toast.success("user fitched succesffuly");
+    //   } catch (erreur) {
+    //     toast.error("error to fitch user");
+    //   }
+    // };
 
     if (orderId) {
       fetchOrder();
     }
-  }, [orderId]);
+    const fetchUserOrder = async (id: string) => {
+      try {
+        const user = await getUserByUid(id);
+        setUser(user.user);
+        toast.success("user fitched succesffuly");
+      } catch (erreur) {
+        toast.error("error to fitch user");
+      }
+    };
+    console.log(order?.userId as string);
+    console.log(userId as string);
+
+    fetchUserOrder(order?.userId as string);
+  }, [orderId, userId]);
 
   const handleStatusChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
@@ -221,13 +249,17 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
             <h2 className="text-lg font-semibold mb-2">
               Commande #{order.orderNumber}
             </h2>
-            <div className="text-gray-600 text-sm">
-              Date de commande: {formatDateFn(order.orderDate)}
-            </div>
+            {order?.orderDate ? (
+              <div className="text-gray-600 text-sm">
+                Date de commande: {formatDate(order?.orderDate)}
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-2 mt-2">
               <span className="text-sm font-medium">Restaurant:</span>
               <span className="text-sm text-orange-500">
-                {order.restaurantId}
+                {/* {order.restaurantId} */}
+                Dixie
               </span>
             </div>
             <button className="flex items-center gap-1 text-xs text-orange-500 mt-2 border border-orange-500 rounded-md px-2 py-1">
@@ -400,7 +432,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                 <span className="text-gray-600">
                   {formatPrice(
                     parseFloat(String(order.subtotal || 0)) -
-                      parseFloat(String(order.total || 0)) +
+                      parseFloat(String(order.totalAmount || 0)) +
                       parseFloat(String(order.tax || 0)) +
                       parseFloat(String(order.deliveryFee || 0)),
                   )}{" "}
@@ -435,7 +467,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
               </div>
               <div className="flex justify-between font-semibold border-t pt-2 mt-2">
                 <span>Total:</span>
-                <span>{formatPrice(order.total)} MAD</span>
+                <span>{formatPrice(order.totalAmount)} MAD</span>
               </div>
             </div>
           </div>
@@ -451,23 +483,26 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
             <div className="flex items-center gap-3 mb-3">
               <div className="h-12 w-12 bg-gray-200 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
                 <span className="text-gray-500 font-medium text-lg">
-                  {order.customerName?.charAt(0)}
+                  {userOrder?.displayName?.charAt(0)}
                 </span>
               </div>
               <div>
-                <div className="font-medium">{order.customerName}</div>
+                <div className="font-medium">{userOrder?.displayName}</div>
                 <div className="text-sm text-gray-500">Client</div>
               </div>
             </div>
             <div className="space-y-1 text-sm">
-              <div className="flex gap-2">
-                <span className="text-gray-500">Tél:</span>
-                <span>{order.customerPhone}</span>
-              </div>
-              {order.customerEmail && (
+              {userOrder?.phone ? (
+                <div className="flex gap-2">
+                  <span className="text-gray-500">Tél:</span>
+                  <span>{userOrder?.phone}</span>
+                </div>
+              ) : null}
+
+              {userOrder?.email && (
                 <div className="flex gap-2">
                   <span className="text-gray-500">Email:</span>
-                  <span>{order.customerEmail}</span>
+                  <span>{userOrder?.email}</span>
                 </div>
               )}
             </div>
@@ -482,7 +517,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                 <PenLine size={16} />
               </button>
             </div>
-            <div className="space-y-2 text-sm">
+            {/* <div className="space-y-2 text-sm">
               <div className="grid grid-cols-3 gap-1">
                 <span className="text-gray-500">Nom:</span>
                 <span className="col-span-2">{order.customerName}</span>
@@ -501,7 +536,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                   <p className="text-gray-500">Adresse non définie</p>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">

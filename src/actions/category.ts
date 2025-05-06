@@ -13,13 +13,15 @@ import { db } from "@/lib/firebase/config"; // Assurez-vous que ce chemin est co
 import { Category } from "@/lib/types";
 export async function addCategory(data: Category) {
   try {
-    const { name, image, status, userId } = data;
-    const categoryRef = collection(db, "categories");
+    const { name, image, status, userId, description, longDescription } = data;
+    const categoryRef = collection(db, "cuisines");
     const docRef = await addDoc(categoryRef, {
       name,
       image,
       status,
+      description,
       userId,
+      longDescription,
     });
 
     return { success: true, id: docRef.id };
@@ -29,10 +31,10 @@ export async function addCategory(data: Category) {
   }
 }
 
-// READ: Get all categories
+// READ: Get all cuisines
 export async function getAllCategories() {
   try {
-    const categoryRef = collection(db, "categories");
+    const categoryRef = collection(db, "cuisines");
     const querySnapshot = await getDocs(categoryRef);
 
     const categories: Category[] = [];
@@ -69,7 +71,7 @@ export async function getAllCategories() {
 // READ: Get a single category by ID
 export async function getCategoryById(id: string) {
   try {
-    const categoryRef = doc(db, "categories", id);
+    const categoryRef = doc(db, "cuisines", id);
     const docSnap = await getDoc(categoryRef);
 
     if (docSnap.exists()) {
@@ -89,7 +91,7 @@ export async function getCategoryById(id: string) {
 // UPDATE: Update a category
 export async function updateCategory(id: string, data: Partial<Category>) {
   try {
-    const categoryRef = doc(db, "categories", id);
+    const categoryRef = doc(db, "cuisines", id);
     await updateDoc(categoryRef, data);
 
     return { success: true };
@@ -102,7 +104,7 @@ export async function updateCategory(id: string, data: Partial<Category>) {
 // DELETE: Delete a category
 export async function deleteCategory(id: string) {
   try {
-    const categoryRef = doc(db, "categories", id);
+    const categoryRef = doc(db, "cuisines", id);
     await deleteDoc(categoryRef);
 
     return { success: true };

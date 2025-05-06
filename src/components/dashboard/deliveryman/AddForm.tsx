@@ -130,19 +130,15 @@ export default function AddDeliveryman() {
         age: values.age,
         birthdate: new Date(Date.now()).toISOString(),
         phone: values.phone,
-        password: values.password, // In production, you should hash this on the server side
-        // deliverymanType: values.deliverymanType,
+        password: values.password,
         profileImageUrl: imageProfile as string,
         identityImageUrl: imageIdentifier as string,
         status: "inactive",
         createdAt: new Date(Date.now()),
-        deliverymanImage: imageProfile as string,
         id: "0",
         updatedAt: new Date(),
-        // licenseFile: licenseFile ? licenseFile.name : (null) as string,
-        // createdAt: new Date().toISOString(),
-
-        // h
+        isApproved: true,
+        licenseFile: "",
       };
 
       const result = await addDeliveryman(deliverymanData);

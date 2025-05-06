@@ -4,10 +4,15 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
+  displayName: string;
   role: "admin" | "manager" | "staff";
   photoURL?: string;
   restaurantId: string;
+  createdAt: Date;
+  orders: Order[];
+  updatedAt: Date;
+  lastLoginAt: Date;
+  phone: string;
 }
 
 // Restaurant types
@@ -45,11 +50,21 @@ export interface Category {
   name: string;
   image?: string;
   // isActive: boolean;
-  // description: string;
+  description: string;
+  longDescription: string;
   status: boolean;
   userId: string;
 }
-
+export interface Cuisine {
+  id: string;
+  name: string;
+  image?: string;
+  // isActive: boolean;
+  description: string;
+  longDescription: string;
+  status: boolean;
+  userId: string;
+}
 export interface Food {
   id: string;
   name: string;
@@ -67,6 +82,7 @@ export interface Food {
   totalSold: number;
   rating: number;
   reviewCount: number;
+  cuisineId: string;
 }
 
 export interface Variation {
@@ -87,18 +103,21 @@ export interface Addon {
 export interface Order {
   id: string;
   orderNumber: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string;
-  customerAddress?: string;
   items: OrderItem[];
   subtotal: number;
   OrderStatus: string;
   tax: number;
+  address: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
+  deliveryOption: string;
   deliveryFee: number;
   packagingFee: number;
+  userId: string;
   discount: number;
-  total: number;
+  totalAmount: number;
   paymentStatus: "paid" | "unpaid" | "refunded";
   paymentMethod: string;
   orderStatus: OrderStatus;
@@ -106,6 +125,11 @@ export interface Order {
   deliveryDate?: Date;
   restaurantId: string;
   notes?: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  orderConfirmedAt: Date;
+  paymentConfirmedAt: Date;
 }
 
 export interface OrderItem {
@@ -114,8 +138,8 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
-  variations: { name: string; price: number }[];
-  addons: { name: string; price: number }[];
+  variations: Variation[];
+  addons: Addon[];
   subtotal: number;
 }
 
@@ -160,13 +184,13 @@ export interface Deliveryman {
   identityNumber: string;
   age: string | number;
   birthdate: string; // ISO date string
-  deliverymanImage?: string; // URL or base64 string
   profileImageUrl?: string; // URL or base64 string
   identityImageUrl?: string; // URL or base64 string
   licenseFile?: string; // URL or base64 string
   status: "active" | "inactive" | "suspended";
   createdAt?: Date; // Optional in some contexts like updates
   updatedAt?: Date;
+  isApproved: boolean;
 } // URL of the deliveryman image
 
 // Promotion types

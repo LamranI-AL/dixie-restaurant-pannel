@@ -14,12 +14,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Search } from "lucide-react";
-import { Category } from "@/lib/types";
+import { Cuisine } from "@/lib/types";
 import { useAuth } from "@/providers/auth-provider";
 import Image from "next/image";
-import { getAllCategories } from "@/actions/category";
-import { EditCategoryForm } from "@/components/dashboard/categories/EditeCategoryForm";
-import { DeleteCategoryConfirmation } from "@/components/dashboard/categories/DeleteCategorieForm";
+// import { getAllCuisines } from "@/actions/cuisine";
+// import { EditCuisineForm } from "@/components/dashboard/cuisines/EditCuisineForm";
+// import { DeleteCuisineConfirmation } from "@/components/dashboard/cuisines/DeleteCuisineForm";
 import { toast, Toaster } from "sonner";
 import {
   Popover,
@@ -29,102 +29,105 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-import { addCategory } from "@/actions/category";
+// import { addCuisine } from "@/actions/cuisine";
 import { UploadButton } from "@/utils/uploadthing";
+import { addCategory, getAllCategories } from "@/actions/category";
+import { EditCategoryForm } from "@/components/dashboard/categories/EditeCategoryForm";
+import { DeleteCategoryConfirmation } from "@/components/dashboard/categories/DeleteCategorieForm";
 
-export default function CategoriesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+export default function CuisinesPage() {
+  const [recherche, setRecherche] = useState("");
   const { currentUser } = useAuth();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [formLoading, setFormLoading] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [cuisines, setCuisines] = useState<Cuisine[]>([]);
+  const [chargement, setChargement] = useState(true);
+  const [chargementFormulaire, setChargementFormulaire] = useState(false);
+  const [popoverOuvert, setPopoverOuvert] = useState(false);
 
-  // New category form state
-  const [categoryName, setCategoryName] = useState("");
-  const [categoryDescription, setCategoryDescription] = useState("");
-  const [categoryImage, setCategoryImage] = useState("");
-  const [uploadingImage, setUploadingImage] = useState(false);
+  // État du formulaire de nouvelle cuisine
+  const [nomCuisine, setNomCuisine] = useState("");
+  const [descriptionCuisine, setDescriptionCuisine] = useState("");
+  const [imageCuisine, setImageCuisine] = useState("");
+  const [telechargementImage, setTelechargementImage] = useState(false);
 
-  // Fetch categories
-  const fetchCategories = async () => {
-    setLoading(true);
+  // Récupérer les cuisines
+  const recupererCuisines = async () => {
+    setChargement(true);
     try {
       const { success, categories } = await getAllCategories();
       if (success) {
-        setCategories(categories as Category[]);
-        toast.success("Categories loaded successfully");
+        setCuisines(categories as Cuisine[]);
+        toast.success("Cuisines chargées avec succès");
       } else {
-        toast.error("Error fetching categories");
+        toast.error("Erreur lors de la récupération des cuisines");
       }
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("Failed to load categories");
+      console.error("Erreur lors de la récupération des cuisines :", error);
+      toast.error("Échec du chargement des cuisines");
     } finally {
-      setLoading(false);
+      setChargement(false);
     }
   };
 
   useEffect(() => {
-    fetchCategories();
+    recupererCuisines();
   }, []);
 
-  // Handle new category submission
-  const handleAddCategory = async (e: React.FormEvent) => {
+  // Gérer l'ajout d'une nouvelle cuisine
+  const handleAjouterCuisine = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!categoryName.trim()) {
-      toast.error("Category name is required");
+    if (!nomCuisine.trim()) {
+      toast.error("Le nom de la cuisine est requis");
       return;
     }
 
-    if (!categoryImage) {
-      toast.error("Please upload an image for the category");
+    if (!imageCuisine) {
+      toast.error("Veuillez télécharger une image pour la cuisine");
       return;
     }
 
-    setFormLoading(true);
+    setChargementFormulaire(true);
 
     try {
       const result = await addCategory({
         status: true,
         userId: (await currentUser?.getIdToken()) || "",
-        // : categoryId,
         id: "",
-        name: categoryName,
-        // : categoryDescription,
-        image: categoryImage,
+        name: nomCuisine,
+        description: "test",
+        longDescription: "testmock",
+        image: imageCuisine,
       });
 
       if (result.success) {
-        toast.success("Category added successfully!");
-        // Reset form
-        setCategoryName("");
-        setCategoryDescription("");
-        setCategoryImage("");
-        // Close popover
-        setPopoverOpen(false);
-        // Refresh categories
-        fetchCategories();
+        toast.success("Cuisine ajoutée avec succès !");
+        // Réinitialiser le formulaire
+        setNomCuisine("");
+        setDescriptionCuisine("");
+        setImageCuisine("");
+        // Fermer le popover
+        setPopoverOuvert(false);
+        // Actualiser les cuisines
+        recupererCuisines();
       } else {
-        toast.error(result.error || "Failed to add category");
+        toast.error(result.error || "Échec de l'ajout de la cuisine");
       }
     } catch (error) {
-      console.error("Error adding category:", error);
-      toast.error("Something went wrong. Please try again.");
+      console.error("Erreur lors de l'ajout de la cuisine :", error);
+      toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
-      setFormLoading(false);
+      setChargementFormulaire(false);
     }
   };
 
-  // Filter categories based on search query
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  // Filtrer les cuisines en fonction de la recherche
+  const cuisinesFiltrees = cuisines.filter((cuisine) =>
+    cuisine.name.toLowerCase().includes(recherche.toLowerCase()),
   );
 
   return (
     <div className="space-y-4">
-      {/* Toast notifications */}
+      {/* Notifications toast */}
       <Toaster
         position="top-right"
         richColors
@@ -171,9 +174,9 @@ export default function CategoriesPage() {
               rx="1"
             />
           </svg>
-          <h2 className="text-2xl font-bold">Category List</h2>
+          <h2 className="text-2xl font-bold">Liste des Cuisines</h2>
           <div className="ml-2 flex h-7 items-center justify-center rounded-full bg-blue-100 px-3 text-xs font-medium text-blue-500">
-            {filteredCategories.length}
+            {cuisinesFiltrees.length}
           </div>
         </div>
 
@@ -182,10 +185,10 @@ export default function CategoriesPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Ex : Search by category name.."
+              placeholder="Ex : Rechercher par nom de cuisine.."
               className="w-[240px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
             />
           </div>
 
@@ -195,56 +198,60 @@ export default function CategoriesPage() {
             <Search className="h-4 w-4" />
           </Button>
 
-          {/* Add Category Popover */}
+          {/* Popover Ajouter une Cuisine */}
           <Popover
-            open={popoverOpen}
-            onOpenChange={setPopoverOpen}>
+            open={popoverOuvert}
+            onOpenChange={setPopoverOuvert}>
             <PopoverTrigger asChild>
               <Button className="gap-1">
                 <Plus className="h-4 w-4 mr-1" />
-                Add New Category
+                Ajouter une Nouvelle Cuisine
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <form
-                onSubmit={handleAddCategory}
+                onSubmit={handleAjouterCuisine}
                 className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="font-medium leading-none">Add New Category</h3>
+                  <h3 className="font-medium leading-none">
+                    Ajouter une Nouvelle Cuisine
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Enter details for the new category
+                    Saisissez les détails de la nouvelle cuisine
                   </p>
                 </div>
 
-                {/* Image Upload */}
+                {/* Téléchargement d'image */}
                 <div className="space-y-2">
-                  <Label htmlFor="image">Category Image</Label>
+                  <Label htmlFor="image">Image de la Cuisine</Label>
                   <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-md p-2">
                     <UploadButton
                       endpoint="imageUploader"
                       onClientUploadComplete={(res) => {
                         if (res && res.length > 0 && res[0].ufsUrl) {
-                          setCategoryImage(res[0].ufsUrl);
-                          toast.success("Image uploaded successfully!");
-                          setUploadingImage(false);
+                          setImageCuisine(res[0].ufsUrl);
+                          toast.success("Image téléchargée avec succès !");
+                          setTelechargementImage(false);
                         }
                       }}
                       onUploadBegin={() => {
-                        setUploadingImage(true);
+                        setTelechargementImage(true);
                       }}
                       onUploadError={(error: Error) => {
-                        toast.error(`Upload error: ${error.message}`);
-                        setUploadingImage(false);
+                        toast.error(
+                          `Erreur de téléchargement : ${error.message}`,
+                        );
+                        setTelechargementImage(false);
                       }}
                     />
                   </div>
 
-                  {/* Image Preview */}
-                  {categoryImage && (
+                  {/* Aperçu de l'image */}
+                  {imageCuisine && (
                     <div className="mt-2 relative h-24 w-24 mx-auto">
                       <Image
-                        src={categoryImage}
-                        alt="Category preview"
+                        src={imageCuisine}
+                        alt="Aperçu de la cuisine"
                         fill
                         className="object-cover rounded-md"
                       />
@@ -252,43 +259,45 @@ export default function CategoriesPage() {
                   )}
                 </div>
 
-                {/* Category Name */}
+                {/* Nom de la Cuisine */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Category Name</Label>
+                  <Label htmlFor="name">Nom de la Cuisine</Label>
                   <Input
                     id="name"
                     required
-                    placeholder="Enter category name"
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
+                    placeholder="Saisissez le nom de la cuisine"
+                    value={nomCuisine}
+                    onChange={(e) => setNomCuisine(e.target.value)}
                   />
                 </div>
 
-                {/* Category Description */}
+                {/* Description de la Cuisine */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Label htmlFor="description">Description (Optionnel)</Label>
                   <Textarea
                     id="description"
-                    placeholder="Enter category description"
-                    value={categoryDescription}
-                    onChange={(e) => setCategoryDescription(e.target.value)}
+                    placeholder="Saisissez la description de la cuisine"
+                    value={descriptionCuisine}
+                    onChange={(e) => setDescriptionCuisine(e.target.value)}
                     className="resize-none"
                     rows={3}
                   />
                 </div>
 
-                {/* Submit Button */}
+                {/* Bouton de Soumission */}
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={formLoading || uploadingImage || !categoryImage}>
-                  {formLoading ? (
+                  disabled={
+                    chargementFormulaire || telechargementImage || !imageCuisine
+                  }>
+                  {chargementFormulaire ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
+                      Enregistrement...
                     </>
                   ) : (
-                    "Add Category"
+                    "Ajouter une Cuisine"
                   )}
                 </Button>
               </form>
@@ -297,10 +306,10 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Categories Table */}
+      {/* Tableau des Cuisines */}
       <Card className="border border-gray-200">
         <CardContent className="p-0">
-          {loading ? (
+          {chargement ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -308,23 +317,23 @@ export default function CategoriesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-12 text-center">SI</TableHead>
+                  <TableHead className="w-12 text-center">N°</TableHead>
                   <TableHead>Image</TableHead>
-                  <TableHead>Category Name</TableHead>
+                  <TableHead>Nom de la Cuisine</TableHead>
                   <TableHead className="w-24 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCategories.length === 0 ? (
+                {cuisinesFiltrees.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={4}
                       className="text-center py-8 text-gray-500">
-                      No categories found. Create your first category!
+                      Aucune cuisine trouvée. Créez votre première cuisine !
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCategories.map((category, index) => (
+                  cuisinesFiltrees.map((cuisine, index) => (
                     <TableRow key={index}>
                       <TableCell className="text-center">{index + 1}</TableCell>
                       <TableCell>
@@ -333,23 +342,22 @@ export default function CategoriesPage() {
                             width={300}
                             height={300}
                             src={
-                              (category.image as string) ||
+                              (cuisine.image as string) ||
                               "https://img.icons8.com/color/96/000000/curry.png"
                             }
-                            alt={category.name}
+                            alt={cuisine.name}
                             className="h-full w-full object-cover"
+                            unoptimized
                           />
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {category.name}
+                        {cuisine.name}
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-1">
-                          <EditCategoryForm Categryid={category.id} />
-                          <DeleteCategoryConfirmation
-                            categoryId={category.id}
-                          />
+                          <EditCategoryForm Categryid={cuisine.id} />
+                          <DeleteCategoryConfirmation categoryId={cuisine.id} />
                         </div>
                       </TableCell>
                     </TableRow>
@@ -361,7 +369,7 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Footer */}
+      {/* Pied de page */}
       <div className="flex justify-between items-center border-t pt-4 text-sm text-muted-foreground">
         <div>© dixie.</div>
         <div className="flex items-center space-x-4">
@@ -369,13 +377,13 @@ export default function CategoriesPage() {
             variant="ghost"
             size="sm"
             className="text-muted-foreground">
-            Restaurant settings
+            Paramètres du restaurant
           </Button>
           <Button
             variant="ghost"
             size="sm"
             className="text-muted-foreground">
-            Profile
+            Profil
           </Button>
           <Button
             variant="ghost"
