@@ -240,7 +240,7 @@ export default function Login() {
         <CardFooter className="flex justify-center pb-4">
           <div className="text-center text-xs text-muted-foreground">
             <p>Demo credentials (if needed):</p>
-            <p>test@gmail.com / test123</p>
+            <p>admin@dixie.ma / dixie@medeclipse</p>
           </div>
         </CardFooter>
       </Card>

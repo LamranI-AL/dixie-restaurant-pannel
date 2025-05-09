@@ -47,48 +47,6 @@ import { Addon, Food, Variation } from "@/lib/types";
 import { getFoodById } from "@/actions/food";
 import { EditFoodDialog } from "./EditFoodDialog";
 
-// Mock fonction pour récupérer les détails d'un plat - à remplacer par votre appel API réel
-// const getFoodById = async (id: string): Promise<Food | null> => {
-//   // Simuler un appel API
-//   return new Promise((resolve) => {
-//     setTimeout(() => {
-//       resolve({
-//         id,
-//         name: "Pizza Margherita",
-//         description:
-//           "Sauce tomate, mozzarella fraîche, basilic frais et huile d'olive extra vierge. La pizza classique italienne avec des ingrédients simples mais savoureux.",
-//         image:
-//           "https://images.unsplash.com/photo-1594007654729-407eedc4be65?q=80&w=2369&auto=format&fit=crop",
-//         price: 12.99,
-//         discountPrice: 10.99,
-//         images: [
-//           "https://images.unsplash.com/photo-1594007654729-407eedc4be65?q=80&w=2369&auto=format&fit=crop",
-//           "https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=2370&auto=format&fit=crop",
-//         ],
-//         categoryId: "italian",
-//         isAvailable: true,
-//         preparationTime: 15,
-//         variations: [
-//           { id: "v1", name: "Petite (25cm)", price: 10.99, isAvailable: true },
-//           { id: "v2", name: "Moyenne (30cm)", price: 12.99, isAvailable: true },
-//           { id: "v3", name: "Grande (35cm)", price: 14.99, isAvailable: true },
-//         ],
-//         addons: [
-//           { id: "a1", name: "Champignons", price: 1.5, isAvailable: true },
-//           { id: "a2", name: "Olives", price: 1.0, isAvailable: true },
-//           { id: "a3", name: "Pepperoni", price: 2.0, isAvailable: true },
-//         ],
-//         restaurantId: "rest-1",
-//         totalSold: 128,
-//         rating: 4.7,
-//         reviewCount: 42,
-//         cuisineId: "italian",
-//       });
-//     }, 1500);
-//   });
-// };
-
-// Composant Skeleton pour le chargement
 const FoodDetailsSkeleton: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-8">
@@ -244,15 +202,7 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
   };
 
   const handleEditFood = (food: Food) => {
-    // if (!food) return;
     setFoodToEdit(food);
-    // return (
-    //   <EditFoodDialog
-    //     food={food as Food}
-    //     open={!!food}
-    //     onClose={() => setFoodToEdit(food)}
-    //   />
-    // );
   };
 
   const toggleFavorite = () => {

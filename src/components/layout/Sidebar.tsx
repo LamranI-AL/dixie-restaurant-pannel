@@ -17,6 +17,7 @@ import {
   BellRing,
   ChevronDown,
   Truck,
+  PersonStandingIcon,
   Users,
   UserPlus,
   Store,
@@ -189,6 +190,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             icon={Truck}
             label="Liste des Livreurs"
             isActive={location === "/delivery"}
+          />
+          <SidebarItem
+            href="/deliveryman/pending-approval-list"
+            icon={PersonStandingIcon}
+            label="Livreurs à approuver"
+            isActive={location === "/pending-approval-list"}
           />
         </SidebarSection>
 

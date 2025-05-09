@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 // import { createOrder } from "@/actions/ordres"; // Server Action pour créer une commande
 import { Loader2, PlusCircle, Trash2, ChevronLeft } from "lucide-react";
-import { Addon, OrderItem, OrderStatus, Restaurant } from "@/lib/types"; // Importation des types
+import { Addon, Order, OrderItem, OrderStatus, Restaurant } from "@/lib/types"; // Importation des types
 
 // Importation des composants shadcn
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,7 @@ export default function AddOrderForm() {
   // Calculer les totaux
   const calculateTotals = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * 0.01; // TVA 20%
+    const tax = subtotal * 0; // TVA 0%
     const deliveryFee = formData.orderType === "delivery" ? 15 : 0; // Frais de livraison
     const packagingFee = 1.5; // Frais d'emballage
     const total = subtotal + tax + deliveryFee + packagingFee;
@@ -249,7 +249,7 @@ export default function AddOrderForm() {
 
     try {
       // Préparation des données de la commande selon la structure de la base de données Firebase
-      const orderData = {
+      const orderData: Order | any = {
         ...formData,
         items: orderItems.map((item) => ({
           id: item.id,
@@ -271,11 +271,16 @@ export default function AddOrderForm() {
         tax: totals.tax,
         deliveryFee: totals.deliveryFee,
         packagingFee: totals.packagingFee,
-        total: totals.total,
+        totalAmount: totals.total,
         discount: 0, // À implémenter si nécessaire
         paymentStatus: "unpaid", // Par défaut
-        orderStatus: "pending" as OrderStatus, // Conversion explicite selon le type OrderStatus
-        orderDate: new Date(),
+        orderStatus: "pending" as OrderStatus,
+        address: {
+          address: formData.customerAddress || "ask admin please",
+          latitude: 1,
+          longitude: 1,
+        }, // Conversion explicite selon le type OrderStatus
+        // orderDate: new Date(),
       };
 
       // Envoi des données au serveur avec l'action serveur
@@ -297,7 +302,7 @@ export default function AddOrderForm() {
       setIsSubmitting(false);
     }
   };
-  console.log("orderItems", orderItems);
+  // console.log("orderItems", orderItems);
 
   return (
     <div className="max-w-7xl mx-auto p-6">

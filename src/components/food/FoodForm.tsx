@@ -88,17 +88,6 @@ interface FormCompletion {
   image: boolean;
 }
 
-// Liste des cuisines fictives
-const cuisines = [
-  { id: "italian", name: "Italien" },
-  { id: "french", name: "Français" },
-  { id: "asian", name: "Asiatique" },
-  { id: "indian", name: "Indien" },
-  { id: "american", name: "Américain" },
-  { id: "mexican", name: "Mexicain" },
-  { id: "mediterranean", name: "Méditerranéen" },
-];
-
 const AddFoodForm: React.FC = () => {
   const router = useRouter();
   // Form state
@@ -251,6 +240,7 @@ const AddFoodForm: React.FC = () => {
       ...prev,
       categoryId: value,
     }));
+    console.log(value);
 
     if (errors.categoryId) {
       setErrors((prev) => ({
@@ -319,7 +309,7 @@ const AddFoodForm: React.FC = () => {
     setVariationError(null);
 
     toast.success("Variation ajoutée", {
-      description: `${newVariation.name} (${newVariation.price} €) a été ajouté`,
+      description: `${newVariation.name} (${newVariation.price} MAD) a été ajouté`,
     });
   };
 
@@ -368,7 +358,7 @@ const AddFoodForm: React.FC = () => {
     setAddonError(null);
 
     toast.success("Supplément ajouté", {
-      description: `${newAddon.name} (${newAddon.price} €) a été ajouté`,
+      description: `${newAddon.name} (${newAddon.price} MAD) a été ajouté`,
     });
   };
 
@@ -454,8 +444,8 @@ const AddFoodForm: React.FC = () => {
         : undefined,
       image: imageUrl,
       images: [imageUrl],
-      categoryId: formData.categoryId,
-      cuisineId: formData.cuisineId || undefined,
+      cuisineId: formData.categoryId,
+      // cuisineId: formData.cuisineId || undefined,
       isAvailable: formData.isAvailable,
       preparationTime: parseInt(formData.preparationTime, 10),
       variations: variations,
@@ -674,7 +664,7 @@ const AddFoodForm: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center">
                   Type de cuisine
@@ -699,7 +689,7 @@ const AddFoodForm: React.FC = () => {
                   Optionnel: le type de cuisine du plat
                 </p>
               </div>
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center">
@@ -752,7 +742,7 @@ const AddFoodForm: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center">
-                  Prix (€)
+                  Prix (MAD)
                   <span className="text-red-500 ml-1">*</span>
                   {formCompletion.price && (
                     <CheckCircle2 className="ml-2 h-4 w-4 text-green-500" />
@@ -782,7 +772,7 @@ const AddFoodForm: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center">
-                  Prix réduit (€)
+                  Prix réduit (MAD)
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -904,7 +894,7 @@ const AddFoodForm: React.FC = () => {
                               {variation.name}
                             </span>
                             <Badge variant="outline">
-                              {variation.price.toFixed(2)} €
+                              {variation.price.toFixed(2)} MAD
                             </Badge>
                           </div>
                           <Button
@@ -994,7 +984,7 @@ const AddFoodForm: React.FC = () => {
                             <GripVertical className="h-4 w-4 text-gray-400" />
                             <span className="font-medium">{addon.name}</span>
                             <Badge variant="outline">
-                              +{addon.price.toFixed(2)} €
+                              +{addon.price.toFixed(2)} MAD
                             </Badge>
                           </div>
                           <Button

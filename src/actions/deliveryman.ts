@@ -16,6 +16,14 @@ import {
 import { db } from "@/lib/firebase/config";
 import { Deliveryman } from "@/lib/types";
 
+import { revalidatePath } from "next/cache";
+import {
+  setDoc,
+  orderBy,
+  Timestamp,
+  serverTimestamp,
+} from "firebase/firestore";
+
 // CREATE: Add a new deliveryman
 export async function addDeliveryman(data: Deliveryman) {
   try {
@@ -137,5 +145,217 @@ export async function deleteDeliveryman(id: string) {
   } catch (error) {
     console.error("Error deleting deliveryman:", error);
     return { success: false, error: (error as Error).message };
+  }
+}
+
+// Fonction pour récupérer tous les livreurs actifs
+export async function getAllActiveDeliverymen() {
+  try {
+    const deliverymenRef = collection(db, "deliverymen");
+    const q = query(deliverymenRef);
+
+    const querySnapshot = await getDocs(q);
+    const deliverymen: Deliveryman[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as Omit<Deliveryman, "id">;
+      deliverymen.push({
+        ...data,
+        id: doc.id,
+        // createdAt: data.createdAt
+        //   ? (data.createdAt as any).toDate()
+        //   : new Date(),
+        // updatedAt: data.updatedAt
+        //   ? (data.updatedAt as any).toDate()
+        //   : new Date(),
+      });
+    });
+
+    return {
+      success: true,
+      deliverymen,
+    };
+  } catch (error) {
+    console.error("Error fetching active deliverymen:", error);
+    return {
+      success: false,
+      error: "Impossible de récupérer les livreurs actifs",
+    };
+  }
+}
+
+// Fonction pour récupérer les candidatures de livreurs en attente d'approbation
+export async function getPendingDeliverymen() {
+  try {
+    const applicationsRef = collection(db, "deliverymen_applications");
+    const q = query(applicationsRef);
+
+    const querySnapshot = await getDocs(q);
+    const applications: Deliveryman[] = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as Omit<Deliveryman, "id">;
+      applications.push({
+        ...data,
+        id: doc.id,
+        // Convertir les Timestamp Firebase en objets Date JavaScript
+        // createdAt: data.createdAt
+        //   ? (data.createdAt as any).toDate()
+        //   : new Date(),
+        // updatedAt: data.updatedAt
+        //   ? (data.updatedAt as any).toDate()
+        //   : new Date(),
+      });
+    });
+
+    return {
+      success: true,
+      deliverymen: applications,
+    };
+  } catch (error) {
+    console.error("Error fetching deliverymen applications:", error);
+    return {
+      success: false,
+      error: "Impossible de récupérer les candidatures des livreurs",
+    };
+  }
+}
+
+// Fonction pour approuver un livreur
+export async function approveDeliveryman(id: string) {
+  try {
+    // 1. Récupérer les données de la candidature
+    const applicationRef = doc(db, "deliverymen_applications", id);
+    const applicationSnap = await getDoc(applicationRef);
+
+    if (!applicationSnap.exists()) {
+      throw new Error("La candidature n'existe pas");
+    }
+
+    const applicationData = applicationSnap.data() as Deliveryman;
+
+    // 2. Créer un nouveau document dans la collection deliverymen
+    const deliverymanRef = doc(db, "deliverymen", id);
+    await setDoc(deliverymanRef, {
+      ...applicationData,
+      isApproved: true,
+      status: "active",
+      createdAt: applicationData.createdAt || serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    // 3. Supprimer la candidature de la collection deliverymen_applications
+    await deleteDoc(applicationRef);
+
+    // Revalidez le chemin pour mettre à jour les données affichées
+    revalidatePath("/dashboard/deliverymen");
+
+    return { success: true };
+  } catch (error) {
+    console.error(`Error approving deliveryman with ID ${id}:`, error);
+    return {
+      success: false,
+      error: "Impossible d'approuver le livreur",
+    };
+  }
+}
+
+// Fonction pour refuser un livreur
+export async function rejectDeliveryman(id: string) {
+  try {
+    // Simplement supprimer la candidature de la collection deliverymen_applications
+    const applicationRef = doc(db, "deliverymen_applications", id);
+    await deleteDoc(applicationRef);
+
+    // Revalidez le chemin pour mettre à jour les données affichées
+    revalidatePath("/dashboard/deliverymen");
+
+    return { success: true };
+  } catch (error) {
+    console.error(`Error rejecting deliveryman with ID ${id}:`, error);
+    return {
+      success: false,
+      error: "Impossible de refuser le livreur",
+    };
+  }
+}
+// Fonction pour suspendre un livreur
+export async function suspendDeliveryman(id: string) {
+  try {
+    const deliverymanRef = doc(db, "deliverymen", id);
+
+    await updateDoc(deliverymanRef, {
+      status: "suspended",
+      updatedAt: serverTimestamp(),
+    });
+
+    // Revalidez le chemin pour mettre à jour les données affichées
+    revalidatePath("/dashboard/deliverymen");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(`Error suspending deliveryman with ID ${id}:`, error);
+    return {
+      success: false,
+      error: "Impossible de suspendre le livreur",
+    };
+  }
+}
+
+// Fonction pour réactiver un livreur
+export async function reactivateDeliveryman(id: string) {
+  try {
+    const deliverymanRef = doc(db, "deliverymen", id);
+
+    await updateDoc(deliverymanRef, {
+      status: "active",
+      updatedAt: serverTimestamp(),
+    });
+
+    // Revalidez le chemin pour mettre à jour les données affichées
+    revalidatePath("/dashboard/deliverymen");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(`Error reactivating deliveryman with ID ${id}:`, error);
+    return {
+      success: false,
+      error: "Impossible de réactiver le livreur",
+    };
+  }
+}
+
+// Fonction pour changer le statut d'un livreur
+export async function updateDeliverymanStatus(
+  id: string,
+  status: "active" | "inactive" | "suspended",
+) {
+  try {
+    const deliverymanRef = doc(db, "deliverymen", id);
+
+    await updateDoc(deliverymanRef, {
+      status,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Revalidez le chemin pour mettre à jour les données affichées
+    revalidatePath("/dashboard/deliverymen");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(
+      `Error updating status for deliveryman with ID ${id}:`,
+      error,
+    );
+    return {
+      success: false,
+      error: "Impossible de mettre à jour le statut du livreur",
+    };
   }
 }

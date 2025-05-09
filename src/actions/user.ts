@@ -493,6 +493,7 @@ export async function getOrdersByUser(userId: string) {
 export async function getAllUsersOrders() {
   try {
     const users = await getAllUsers();
+    console.log(users);
 
     if (!users.success) {
       return {

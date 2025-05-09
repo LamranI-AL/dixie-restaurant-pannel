@@ -15,6 +15,7 @@ import { Food } from "@/lib/types";
 import { useState } from "react";
 import { Loader2, Trash2, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import { deleteFood } from "@/actions/food";
 
 interface DeleteFoodDialogProps {
   food: Food;
@@ -35,7 +36,8 @@ export function DeleteFoodDialog({
     try {
       setIsDeleting(true);
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
+      await deleteFood(food.id);
       onConfirm();
     } catch (error) {
       console.error("Error deleting food:", error);
@@ -75,7 +77,7 @@ export function DeleteFoodDialog({
                 <div className="ml-3">
                   <p className="font-medium">{food.name}</p>
                   <p className="text-sm text-gray-500">
-                    {food.price.toFixed(2)} €
+                    {food.price.toFixed(2)} MAD
                   </p>
                 </div>
               </div>

@@ -3,7 +3,7 @@
 import React, { ReactNode } from "react";
 
 // Define a specific return type for the function
-export const formatDate = (date: Date | any): ReactNode => {
+export const formatDate = (date: Date): ReactNode => {
   // Gérer différents types de dates possibles à partir de Firebase
   let d: Date;
 
@@ -39,6 +39,7 @@ export const formatDate = (date: Date | any): ReactNode => {
       <div>
         <div>Format de date invalide</div>
         <div className="text-muted-foreground text-xs">--:-- --</div>
+        {/* <div className="text-muted-foreground text-xs">{.toUTCString()}</div> */}
       </div>
     );
   }

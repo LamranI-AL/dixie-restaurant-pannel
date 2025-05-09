@@ -84,8 +84,8 @@ export default function DashboardPage() {
     if (!orderStats) return [];
 
     return [
-      { name: "En attente", value: orderStats.pending, color: COLORS[0] },
-      { name: "En traitement", value: orderStats.processing, color: COLORS[1] },
+      { name: "En traitement", value: orderStats.pending, color: COLORS[0] },
+      { name: "En livraison", value: orderStats.processing, color: COLORS[1] },
       { name: "Livrées", value: orderStats.delivered, color: COLORS[2] },
       { name: "Annulées", value: orderStats.cancelled, color: COLORS[3] },
     ];
@@ -255,7 +255,7 @@ export default function DashboardPage() {
                       {orderStats?.pending || 0}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">En attente</p>
+                  <p className="text-xs text-muted-foreground">En traitement</p>
                 </CardContent>
               </Card>
               <Card className="border border-gray-200 bg-blue-50">
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                       {orderStats?.processing || 0}
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">En traitement</p>
+                  <p className="text-xs text-muted-foreground">En livraison</p>
                 </CardContent>
               </Card>
               <Card className="border border-gray-200 bg-green-50">

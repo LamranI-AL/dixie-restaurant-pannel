@@ -2,6 +2,7 @@
 
 // Authentication types
 export interface User {
+  uid: string;
   id: string;
   email: string;
   displayName: string;
@@ -32,18 +33,15 @@ export interface Restaurant {
 
 export interface OpeningHours {
   day: string;
-  open: string;
-  close: string;
-  isClosed: boolean;
+  open: boolean;
+  openTime: string;
+  closeTime: string;
 }
 
 export interface DeliveryOption {
-  id: string;
-  name: string;
-  fee: number;
-  isActive: boolean;
+  type: string;
+  available: boolean;
 }
-
 // Food types
 export interface Category {
   id: string;

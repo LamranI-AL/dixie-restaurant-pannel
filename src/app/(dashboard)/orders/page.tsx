@@ -15,14 +15,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Printer, Eye, Download } from "lucide-react";
-import { Order, OrderStatus } from "@/lib/types";
+import { Order, OrderStatus, User } from "@/lib/types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import Link from "next/link";
 import { getAllOrders } from "@/actions/ordres";
 import { formatDate } from "@/utils/format-date";
 import AddOrderForm from "@/components/command/OrderForm";
-import { getAllUsersOrders } from "@/actions/user";
+import { getAllUsersOrders, getUserByUid } from "@/actions/user";
+import OrderUserComponent from "@/components/command/orderUserComponent";
 
 const getStatusColor = (status: OrderStatus): string => {
   const statusColors: Record<OrderStatus, string> = {
@@ -59,6 +60,7 @@ const getPaymentStatusColor = (
 export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
+  const [userOrder, setUserOrder] = useState<User>();
 
   const exportData = () => {
     // Implement your export logic here
@@ -182,10 +184,16 @@ export default function OrdersPage() {
         console.error("Error fetching categories");
       }
     };
+    const getUserOrder = async (userId: string) => {
+      const { success, user } = await getUserByUid(userId);
+      console.log(user);
+      if (success) {
+        setUserOrder(user as User);
+      } else {
+        console.error("Error fetching user");
+      }
+    };
     fetchFoods();
-    // const fetchOrders = async()=>{
-    //   const ordes
-    // }
   }, []);
   return (
     <div className="space-y-4">
@@ -304,7 +312,9 @@ export default function OrdersPage() {
                   <TableCell>{formatDate(order.orderDate)}</TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{order.userId}</div>
+                      <div className="font-medium">
+                        <OrderUserComponent userId={order.userId} />
+                      </div>
                       <div className="text-muted-foreground text-xs">
                         {order.userId}
                       </div>
@@ -333,9 +343,9 @@ export default function OrdersPage() {
                         ? "Delivered"
                         : "Pending"}
                     </div>
-                    <div className="text-muted-foreground text-xs mt-1">
+                    {/* <div className="text-muted-foreground text-xs mt-1">
                       Delivery
-                    </div>
+                    </div> */}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center gap-1">
