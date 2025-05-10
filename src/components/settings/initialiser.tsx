@@ -5,14 +5,6 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -76,7 +68,6 @@ import {
   CameraIcon,
   MoreVertical,
   Calendar,
-  LucideIcon,
   FileText,
   ClipboardList,
   Euro,
@@ -85,18 +76,21 @@ import {
   FileCheck,
   FileBarChart,
   FileBadge,
+  Copy,
+  PenLine,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
-// import { getRestaurantById, updateRestaurant } from "@/lib/services/restaurantService";
-import { Restaurant, OpeningHours, DeliveryOption } from "@/lib/types";
-import { UploadButton } from "@/utils/uploadthing";
+// import { useToast } from "@/lib/hooks/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getRestaurantById, updateRestaurant } from "@/actions/restaurant";
+import { Restaurant, OpeningHours, DeliveryOption } from "@/lib/types";
+import { UploadButton } from "@/utils/uploadthing";
+import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { Toaster } from "../ui/toaster";
 
-// Constantes
+// Constants
 const DAYS_OF_WEEK = [
   "Lundi",
   "Mardi",
@@ -127,7 +121,7 @@ const CUISINE_TYPES = [
   "Autre",
 ];
 
-// Schéma de validation
+// Validation schema
 const restaurantSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   address: z.string().min(5, "L'adresse doit être complète"),
@@ -142,18 +136,35 @@ const restaurantSchema = z.object({
     .min(0, "Les frais d'emballage ne peuvent pas être négatifs"),
 });
 
-interface TabItemProps {
-  icon: LucideIcon;
-  title: string;
-  description: string;
+// Helper function to calculate duration
+function calculateDuration(start: any, end: any) {
+  if (!start || !end) return "";
+
+  const [startHours, startMinutes] = start.split(":").map(Number);
+  const [endHours, endMinutes] = end.split(":").map(Number);
+
+  let hours = endHours - startHours;
+  let minutes = endMinutes - startMinutes;
+
+  if (minutes < 0) {
+    hours -= 1;
+    minutes += 60;
+  }
+
+  if (hours < 0) {
+    hours += 24; // Assuming end is on the same day or next day
+  }
+
+  return `${hours}h${minutes.toString().padStart(2, "0")}`;
 }
 
-// Composant: Tableau de bord de gestion d'un restaurant
+// Restaurant Management Component
 export function RestaurantManagement({
   restaurantId,
 }: {
   restaurantId: string;
 }) {
+  <Toaster />;
   const router = useRouter();
   const { toast } = useToast();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -166,13 +177,27 @@ export function RestaurantManagement({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
-  // État pour les heures d'ouverture
+  // Opening hours state
   const [openingHours, setOpeningHours] = useState<OpeningHours[]>([]);
 
-  // État pour les options de livraison
+  // Delivery options state
   const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
 
-  // Récupération des infos du restaurant au chargement
+  // Form initialization
+  const form = useForm<z.infer<typeof restaurantSchema>>({
+    resolver: zodResolver(restaurantSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
+      website: "",
+      cuisineTypes: [],
+      packagingCharges: 0,
+    },
+  });
+
+  // Fetch restaurant data on load
   useEffect(() => {
     const fetchRestaurantData = async () => {
       try {
@@ -184,18 +209,48 @@ export function RestaurantManagement({
         if (result.success && result.restaurant) {
           setRestaurant(result.restaurant);
           setLogoUrl(result.restaurant.logo);
-          setOpeningHours(result.restaurant.openingHours || []);
-          setDeliveryOptions(result.restaurant.deliveryOptions || []);
 
-          // Initialiser le formulaire avec les données du restaurant
+          // Initialize opening hours if empty
+          if (
+            !result.restaurant.openingHours ||
+            result.restaurant.openingHours.length === 0
+          ) {
+            const defaultHours = DAYS_OF_WEEK.map((day) => ({
+              day,
+              open: day !== "Dimanche",
+              openTime: "09:00",
+              closeTime: "22:00",
+            }));
+            setOpeningHours(defaultHours);
+          } else {
+            setOpeningHours(result.restaurant.openingHours);
+          }
+
+          // Initialize delivery options if empty
+          if (
+            !result.restaurant.deliveryOptions ||
+            result.restaurant.deliveryOptions.length === 0
+          ) {
+            const defaultOptions = DELIVERY_TYPES.map((type) => ({
+              type: type.id,
+              available: type.id === "delivery" || type.id === "pickup",
+              minOrderAmount: type.id === "delivery" ? 15 : 0,
+              deliveryFee: type.id === "delivery" ? 3.5 : 0,
+            }));
+            setDeliveryOptions(defaultOptions);
+          } else {
+            setDeliveryOptions(result.restaurant.deliveryOptions);
+          }
+
+          // Initialize form with restaurant data
           form.reset({
             name: result.restaurant.name,
             address: result.restaurant.address,
             phone: result.restaurant.phone,
             email: result.restaurant.email,
             website: result.restaurant.website || "",
-            cuisineTypes: result.restaurant.cuisineTypes,
-            packagingCharges: result.restaurant.packagingCharges,
+            cuisineTypes: result.restaurant.cuisineTypes || [],
+            packagingCharges: result.restaurant.packagingCharges || 0,
           });
         } else {
           toast({
@@ -223,23 +278,9 @@ export function RestaurantManagement({
     if (restaurantId) {
       fetchRestaurantData();
     }
-  }, [restaurantId, router, toast]);
+  }, [restaurantId, router, toast, form]);
 
-  // Initialiser le formulaire avec React Hook Form
-  const form = useForm<z.infer<typeof restaurantSchema>>({
-    resolver: zodResolver(restaurantSchema),
-    defaultValues: {
-      name: "",
-      address: "",
-      phone: "",
-      email: "",
-      website: "",
-      cuisineTypes: [],
-      packagingCharges: 0,
-    },
-  });
-
-  // Fonction pour simuler la progression du téléchargement
+  // Simulate upload progress
   const simulateProgress = (
     start = 0,
     max = 100,
@@ -259,7 +300,7 @@ export function RestaurantManagement({
     return interval;
   };
 
-  // Gestionnaire pour les heures d'ouverture
+  // Handle opening hours changes
   const handleOpeningHoursChange = (
     index: number,
     field: keyof OpeningHours,
@@ -270,7 +311,7 @@ export function RestaurantManagement({
     setOpeningHours(updatedHours);
   };
 
-  // Gestionnaire pour les options de livraison
+  // Handle delivery option changes
   const handleDeliveryOptionChange = (
     index: number,
     field: keyof DeliveryOption,
@@ -281,7 +322,7 @@ export function RestaurantManagement({
     setDeliveryOptions(updatedOptions);
   };
 
-  // Soumettre les modifications
+  // Submit form changes
   const handleSubmit = async (formValues: z.infer<typeof restaurantSchema>) => {
     if (!restaurant) return;
 
@@ -294,7 +335,7 @@ export function RestaurantManagement({
         "Mise à jour de votre restaurant...",
       );
 
-      // Préparer les données mises à jour
+      // Prepare updated data
       const updatedData: Partial<Restaurant> = {
         name: formValues.name,
         logo: logoUrl,
@@ -308,7 +349,7 @@ export function RestaurantManagement({
         packagingCharges: formValues.packagingCharges,
       };
 
-      // Appeler le service pour mettre à jour le restaurant
+      // Call update service
       const result = await updateRestaurant(restaurantId, updatedData);
 
       clearInterval(progressInterval);
@@ -322,7 +363,7 @@ export function RestaurantManagement({
           variant: "default",
         });
 
-        // Mettre à jour l'état local avec les nouvelles données
+        // Update local state with new data
         setRestaurant({
           ...restaurant,
           ...updatedData,
@@ -340,21 +381,45 @@ export function RestaurantManagement({
       });
     } finally {
       setIsSaving(false);
-      setUploadProgress(0);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
-  // Retour au tableau de bord
+  // Return to dashboard
   const handleBack = () => {
     router.push("/dashboard");
   };
 
-  // Si chargement en cours, afficher un squelette
+  // Apply Monday hours to all days
+  const applyMondayHoursToAll = () => {
+    if (openingHours.length > 0) {
+      const mondayHours = openingHours[0];
+      const updatedHours = openingHours.map((day, index) =>
+        index === 0
+          ? day
+          : {
+              ...day,
+              open: mondayHours.open,
+              openTime: mondayHours.openTime,
+              closeTime: mondayHours.closeTime,
+            },
+      );
+
+      setOpeningHours(updatedHours);
+
+      toast({
+        title: "Horaires copiés",
+        description: "Les horaires du lundi ont été appliqués à tous les jours",
+      });
+    }
+  };
+
+  // If loading, show skeleton
   if (isLoading) {
     return <RestaurantManagementSkeleton message={loadingMessage} />;
   }
 
-  // Si le restaurant n'a pas été trouvé
+  // If restaurant not found
   if (!restaurant) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -376,268 +441,599 @@ export function RestaurantManagement({
     );
   }
 
-  // Liste des onglets
-  const tabItems: TabItemProps[] = [
-    {
-      icon: Building,
-      title: "Général",
-      description: "Informations de base du restaurant",
-    },
-    {
-      icon: Clock,
-      title: "Horaires",
-      description: "Gestion des horaires d'ouverture",
-    },
-    {
-      icon: Package,
-      title: "Services",
-      description: "Options de livraison et services",
-    },
-    {
-      icon: FileText,
-      title: "Documents",
-      description: "Documents légaux et certifications",
-    },
-    {
-      icon: Settings,
-      title: "Paramètres",
-      description: "Paramètres avancés du restaurant",
-    },
-  ];
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* En-tête avec informations du restaurant */}
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleBack}
-            className="h-10 w-10">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Header with restaurant info */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleBack}
+              className="h-10 w-10 bg-white">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
 
-          <div className="relative flex items-center">
-            {logoUrl ? (
-              <div className="relative h-16 w-16 rounded-lg border overflow-hidden mr-4">
-                <Image
-                  src={logoUrl}
-                  alt={restaurant.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="h-16 w-16 rounded-lg border bg-gray-100 flex items-center justify-center mr-4">
-                <Building className="h-8 w-8 text-gray-400" />
-              </div>
-            )}
+            <div className="relative flex items-center">
+              {logoUrl ? (
+                <div className="relative h-16 w-16 rounded-lg border overflow-hidden mr-4 shadow-sm">
+                  <Image
+                    src={logoUrl}
+                    alt={restaurant.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="h-16 w-16 rounded-lg border bg-gray-100 flex items-center justify-center mr-4">
+                  <Building className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
 
-            <div>
-              <h1 className="text-2xl font-bold">{restaurant.name}</h1>
-              <div className="flex items-center text-gray-500 text-sm">
-                <MapPin className="h-3 w-3 mr-1" />
-                <span className="truncate max-w-md">{restaurant.address}</span>
+              <div>
+                <h1 className="text-2xl font-bold">{restaurant.name}</h1>
+                <div className="flex items-center text-gray-500 text-sm mt-1">
+                  <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="truncate max-w-md">
+                    {restaurant.address}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <MoreVertical className="h-4 w-4 mr-2" />
-                Actions
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Options du restaurant</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() =>
-                  router.push(`/dashboard/restaurants/${restaurantId}/menu`)
-                }>
-                <ClipboardList className="h-4 w-4 mr-2" />
-                Gérer le menu
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  router.push(`/dashboard/restaurants/${restaurantId}/orders`)
-                }>
-                <Calendar className="h-4 w-4 mr-2" />
-                Voir les commandes
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => setDeleteDialogOpen(true)}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer le restaurant
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/foods`)}
+              className="bg-white border-gray-200">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Menu
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/orders`)}
+              className="bg-white border-gray-200">
+              <Calendar className="h-4 w-4 mr-2" />
+              Commandes
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-white border-gray-200">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56">
+                <DropdownMenuLabel>Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push(`/dashboard`)}>
+                  <FileBarChart className="h-4 w-4 mr-2" />
+                  Statistiques
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/restaurants/${restaurantId}/reviews`,
+                    )
+                  }>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Avis clients
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={() => setDeleteDialogOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer le restaurant
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 
-      {/* Onglets de gestion */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 mb-8">
-          {tabItems.map((item) => (
-            <TabsTrigger
-              key={item.title.toLowerCase()}
-              value={item.title.toLowerCase()}
-              className="flex flex-col items-center py-3 px-4 gap-1 data-[state=active]:bg-primary/10">
-              <item.icon className="h-5 w-5" />
-              <span>{item.title}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Management tabs */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full">
+          <TabsList className="w-full grid grid-cols-5 bg-gray-50 p-0 h-auto">
+            {[
+              { id: "general", icon: Building, label: "Général" },
+              { id: "horaires", icon: Clock, label: "Horaires" },
+              { id: "services", icon: Package, label: "Services" },
+              { id: "documents", icon: FileText, label: "Documents" },
+              { id: "parametres", icon: Settings, label: "Paramètres" },
+            ].map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="py-4 px-3 data-[state=active]:bg-white rounded-none border-b-2 border-transparent data-[state=active]:border-primary flex items-center gap-2">
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)}>
-            {/* Onglet Général */}
-            <TabsContent value="général">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Building className="h-5 w-5 mr-2 text-primary" />
-                    Informations générales
-                  </CardTitle>
-                  <CardDescription>
-                    Informations de base de votre restaurant visibles par vos
-                    clients
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Logo du restaurant */}
-                  <div className="space-y-4">
-                    <h3 className="text-md font-medium flex items-center">
-                      <UploadCloud className="w-5 h-5 mr-2 text-blue-500" />
-                      Logo du Restaurant
-                    </h3>
-                    <Separator />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
+              <div className="p-6">
+                {/* General Tab */}
+                <TabsContent
+                  value="general"
+                  className="mt-0">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Basic Information */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4 flex items-center text-gray-800">
+                        <Building className="h-5 w-5 mr-2 text-primary" />
+                        Informations générales
+                      </h3>
 
-                    <div className="flex items-start space-x-6">
-                      <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 relative overflow-hidden">
-                        {logoUrl ? (
-                          <div className="relative w-full h-full group">
-                            <Image
-                              src={logoUrl}
-                              alt="Logo du restaurant"
-                              fill
-                              sizes="128px"
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setLogoUrl(undefined)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Nom du restaurant
+                                <span className="text-red-500 ml-1">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Le Bistrot Gourmand"
+                                  {...field}
+                                  className="bg-white"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Adresse
+                                <span className="text-red-500 ml-1">*</span>
+                              </FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="123 Rue de la Gastronomie, 75001 Paris"
+                                  className="resize-none bg-white"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Téléphone
+                                  <span className="text-red-500 ml-1">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Input
+                                      className="pl-9 bg-white"
+                                      placeholder="+212 5 22 123 456"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>
+                                  Email
+                                  <span className="text-red-500 ml-1">*</span>
+                                </FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Input
+                                      className="pl-9 bg-white"
+                                      placeholder="contact@monrestaurant.com"
+                                      {...field}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="website"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Site web (optionnel)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                  <Input
+                                    className="pl-9 bg-white"
+                                    placeholder="https://www.monrestaurant.com"
+                                    {...field}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Votre site web ou page de réseaux sociaux
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Logo and Cuisine Types */}
+                    <div className="space-y-8">
+                      {/* Logo upload */}
+                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-100">
+                        <h3 className="text-md font-medium flex items-center mb-4">
+                          <UploadCloud className="w-5 h-5 mr-2 text-blue-500" />
+                          Logo du Restaurant
+                        </h3>
+
+                        <div className="flex items-start space-x-6">
+                          <div className="w-32 h-32 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-white relative overflow-hidden">
+                            {logoUrl ? (
+                              <div className="relative w-full h-full group">
+                                <Image
+                                  src={logoUrl}
+                                  alt="Logo du restaurant"
+                                  fill
+                                  sizes="128px"
+                                  className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setLogoUrl(undefined)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center p-4">
+                                <Building className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                <p className="text-xs text-gray-500">
+                                  Aucun logo
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <div className="text-center p-4">
-                            <Building className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-xs text-gray-500">Aucun logo</p>
+
+                          <div className="flex-1 space-y-2">
+                            <h4 className="text-sm font-medium">
+                              Choisir un logo
+                            </h4>
+                            <p className="text-xs text-gray-500">
+                              Une image claire avec un fond simple est
+                              recommandée. Format carré recommandé (1:1).
+                            </p>
+
+                            {isUploading ? (
+                              <div className="space-y-2">
+                                <p className="text-sm text-gray-600">
+                                  Téléchargement en cours...
+                                </p>
+                                <Progress
+                                  value={uploadProgress}
+                                  className="h-2"
+                                />
+                              </div>
+                            ) : (
+                              <div className="bg-white rounded-md p-4 border border-gray-200">
+                                <UploadButton
+                                  endpoint="imageUploader"
+                                  onClientUploadComplete={(res) => {
+                                    if (res && res[0] && res[0].url) {
+                                      setLogoUrl(res[0].url);
+                                      toast({
+                                        title: "Logo téléchargé",
+                                        description:
+                                          "Votre logo a été téléchargé avec succès",
+                                      });
+                                    }
+                                  }}
+                                  onUploadProgress={(progress) => {
+                                    setUploadProgress(progress);
+                                  }}
+                                  onUploadError={(error) => {
+                                    toast({
+                                      title: "Erreur",
+                                      description: error.message,
+                                      variant: "destructive",
+                                    });
+                                    setIsUploading(false);
+                                    setUploadProgress(0);
+                                  }}
+                                />
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
 
-                      <div className="flex-1 space-y-2">
-                        <h4 className="text-sm font-medium">Choisir un logo</h4>
-                        <p className="text-xs text-gray-500">
-                          Une image claire avec un fond simple est recommandée.
-                          Format carré recommandé (1:1).
-                        </p>
-
-                        {isUploading ? (
-                          <div className="space-y-2">
-                            <p className="text-sm text-gray-600">
-                              Téléchargement en cours...
-                            </p>
-                            <Progress
-                              value={uploadProgress}
-                              className="h-2"
-                            />
-                          </div>
-                        ) : (
-                          <div className="bg-gray-50 rounded-md p-4">
-                            <UploadButton
-                              endpoint="imageUploader"
-                              onClientUploadComplete={(res) => {
-                                if (res && res[0] && res[0].url) {
-                                  setLogoUrl(res[0].url);
-                                  toast({
-                                    title: "Horaires copiés",
-                                    description:
-                                      "Les horaires du lundi ont été appliqués à tous les jours",
-                                  });
+                      {/* Cuisine Types */}
+                      <div>
+                        <FormField
+                          control={form.control}
+                          name="cuisineTypes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Types de cuisine
+                                <span className="text-red-500 ml-1">*</span>
+                              </FormLabel>
+                              <Select
+                                onValueChange={(value) =>
+                                  field.onChange([...field.value, value])
                                 }
-                              }}
-                            />
-                            Appliquer à tous les jours
-                          </div>
-                        )}
+                                value={undefined}>
+                                <FormControl>
+                                  <SelectTrigger className="bg-white">
+                                    <SelectValue placeholder="Sélectionner un type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {CUISINE_TYPES.filter(
+                                    (type) => !field.value.includes(type),
+                                  ).map((type) => (
+                                    <SelectItem
+                                      key={type}
+                                      value={type}>
+                                      {type}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                {field.value.map((type) => (
+                                  <Badge
+                                    key={type}
+                                    variant="secondary"
+                                    className="pl-2 py-1">
+                                    {type}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      className="h-5 w-5 p-0 ml-1"
+                                      onClick={() =>
+                                        field.onChange(
+                                          field.value.filter((t) => t !== type),
+                                        )
+                                      }>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </Badge>
+                                ))}
+
+                                {field.value.length === 0 && (
+                                  <p className="text-sm text-gray-500 italic">
+                                    Aucun type de cuisine sélectionné
+                                  </p>
+                                )}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </TabsContent>
 
-            {/* Onglet Services */}
-            <TabsContent value="services">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Package className="h-5 w-5 mr-2 text-blue-600" />
-                    Options de service et livraison
-                  </CardTitle>
-                  <CardDescription>
-                    Configurez les modes de commande et options disponibles pour
-                    vos clients
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {deliveryOptions.map((option, index) => {
-                      const deliveryType = DELIVERY_TYPES.find(
-                        (t) => t.id === option.type,
-                      );
+                {/* Hours Tab */}
+                <TabsContent
+                  value="horaires"
+                  className="mt-0">
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium flex items-center text-gray-800">
+                        <Clock className="h-5 w-5 mr-2 text-green-600" />
+                        Horaires d'ouverture
+                      </h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={applyMondayHoursToAll}
+                        className="bg-white text-sm flex items-center">
+                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                        Appliquer Lundi à tous les jours
+                      </Button>
+                    </div>
 
-                      return (
-                        <Card
-                          key={option.type}
-                          className={`border ${
-                            option.available
-                              ? "border-green-200 bg-green-50/50"
-                              : ""
-                          }`}>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-md flex items-center">
-                              {option.type === "delivery" ? (
-                                <Package className="h-4 w-4 mr-2" />
-                              ) : option.type === "pickup" ? (
-                                <ShoppingBag className="h-4 w-4 mr-2" />
-                              ) : (
-                                <UtensilsCrossed className="h-4 w-4 mr-2" />
-                              )}
-                              {deliveryType?.name}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-600">
-                                Activer cette option
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertTitle>Information</AlertTitle>
+                      <AlertDescription>
+                        Les horaires sont affichés sur votre page de commande et
+                        permettent aux clients de savoir quand commander.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="grid grid-cols-12 gap-2 bg-gray-50 px-6 py-3 border-b">
+                        <div className="col-span-2 font-medium text-sm text-gray-600">
+                          Jour
+                        </div>
+                        <div className="col-span-2 font-medium text-sm text-gray-600">
+                          Statut
+                        </div>
+                        <div className="col-span-3 font-medium text-sm text-gray-600">
+                          Ouverture
+                        </div>
+                        <div className="col-span-3 font-medium text-sm text-gray-600">
+                          Fermeture
+                        </div>
+                        <div className="col-span-2 font-medium text-sm text-gray-600">
+                          Durée
+                        </div>
+                      </div>
+
+                      <div className="divide-y">
+                        {openingHours.map((hours, index) => (
+                          <div
+                            key={hours.day}
+                            className={`grid grid-cols-12 gap-2 px-6 py-4 items-center ${
+                              hours.open ? "bg-white" : "bg-gray-50"
+                            }`}>
+                            <div className="col-span-2">
+                              <p className="font-medium">{hours.day}</p>
+                            </div>
+
+                            <div className="col-span-2 flex items-center space-x-2">
+                              <Switch
+                                checked={hours.open}
+                                onCheckedChange={(checked) =>
+                                  handleOpeningHoursChange(
+                                    index,
+                                    "open",
+                                    checked,
+                                  )
+                                }
+                                className={hours.open ? "bg-green-500" : ""}
+                              />
+                              <span
+                                className={
+                                  hours.open
+                                    ? "text-sm text-green-600 font-medium"
+                                    : "text-sm text-gray-500 font-medium"
+                                }>
+                                {hours.open ? "Ouvert" : "Fermé"}
                               </span>
+                            </div>
+
+                            {hours.open ? (
+                              <>
+                                <div className="col-span-3">
+                                  <div className="flex flex-col">
+                                    <Input
+                                      type="time"
+                                      value={hours.openTime}
+                                      onChange={(e) =>
+                                        handleOpeningHoursChange(
+                                          index,
+                                          "openTime",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="bg-white"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="col-span-3">
+                                  <div className="flex flex-col">
+                                    <Input
+                                      type="time"
+                                      value={hours.closeTime}
+                                      onChange={(e) =>
+                                        handleOpeningHoursChange(
+                                          index,
+                                          "closeTime",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="bg-white"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="col-span-2">
+                                  {hours.openTime && hours.closeTime && (
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-50 text-green-700 border-green-200">
+                                      {calculateDuration(
+                                        hours.openTime,
+                                        hours.closeTime,
+                                      )}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="col-span-8 text-sm text-gray-500 italic">
+                                Restaurant fermé ce jour-là
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Services Tab */}
+                <TabsContent
+                  value="services"
+                  className="mt-0">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-medium flex items-center text-gray-800">
+                      <Package className="h-5 w-5 mr-2 text-blue-600" />
+                      Options de service et livraison
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {deliveryOptions.map((option, index) => {
+                        const deliveryType = DELIVERY_TYPES.find(
+                          (t) => t.id === option.type,
+                        );
+
+                        return (
+                          <div
+                            key={option.type}
+                            className={`bg-white rounded-lg border ${
+                              option.available
+                                ? "border-green-200 ring-1 ring-green-100"
+                                : "border-gray-200"
+                            } p-4 transition-all hover:shadow-sm`}>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium flex items-center">
+                                {option.type === "delivery" ? (
+                                  <Package className="h-4 w-4 mr-2 text-blue-500" />
+                                ) : option.type === "pickup" ? (
+                                  <ShoppingBag className="h-4 w-4 mr-2 text-amber-500" />
+                                ) : (
+                                  <UtensilsCrossed className="h-4 w-4 mr-2 text-purple-500" />
+                                )}
+                                {deliveryType?.name}
+                              </h4>
                               <Switch
                                 checked={option.available}
                                 onCheckedChange={(checked) =>
@@ -647,251 +1043,322 @@ export function RestaurantManagement({
                                     checked,
                                   )
                                 }
+                                className={
+                                  option.available ? "bg-green-500" : ""
+                                }
                               />
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">
+
+                            <p className="text-sm text-gray-500 mb-3">
                               {option.type === "delivery"
                                 ? "Livraison des commandes au domicile des clients"
                                 : option.type === "pickup"
                                 ? "Les clients viennent chercher leurs commandes"
                                 : "Service à table dans votre établissement"}
                             </p>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+
+                            {option.available && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 border-green-200">
+                                  Activé
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-8">
+                      <h3 className="text-lg font-medium flex items-center text-gray-800 mb-4">
+                        <Euro className="h-5 w-5 mr-2 text-green-600" />
+                        Frais supplémentaires
+                      </h3>
+
+                      <div className="bg-white p-6 rounded-lg border border-gray-200">
+                        <div className="max-w-md">
+                          <FormField
+                            control={form.control}
+                            name="packagingCharges"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Frais d'emballage (MAD)</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      // value={option}
+                                      min="0"
+                                      step="0.01"
+                                      placeholder="0.00"
+                                      className="bg-white pl-6"
+                                      {...field}
+                                    />
+                                    <span className="absolute left-3 top-2.5 text-gray-500">
+                                      MAD
+                                    </span>
+                                  </div>
+                                </FormControl>
+                                <FormDescription>
+                                  Frais supplémentaires appliqués pour
+                                  l'emballage à emporter
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </TabsContent>
 
-                  <Separator />
-
-                  <div>
-                    <h3 className="text-md font-medium flex items-center mb-4">
-                      <Euro className="mr-2 h-5 w-5 text-green-600" />
-                      Frais supplémentaires
+                {/* Documents Tab */}
+                <TabsContent
+                  value="documents"
+                  className="mt-0">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-medium flex items-center text-gray-800">
+                      <FileText className="h-5 w-5 mr-2 text-orange-600" />
+                      Documents légaux et certifications
                     </h3>
 
-                    <FormField
-                      control={form.control}
-                      name="packagingCharges"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frais d'emballage (€)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              className="w-36"
-                              {...field}
+                    <Alert
+                      variant="default"
+                      className="bg-amber-50 border-amber-200">
+                      <Info className="h-4 w-4 text-amber-600" />
+                      <AlertTitle>Fonctionnalité à venir</AlertTitle>
+                      <AlertDescription>
+                        La gestion de documents sera bientôt disponible. Vous
+                        pourrez télécharger et organiser vos documents légaux,
+                        licences et certifications.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                      {[
+                        {
+                          title: "Registre de commerce",
+                          icon: FileCheck,
+                          description: "Document officiel d'enregistrement",
+                          color: "text-blue-500",
+                        },
+                        {
+                          title: "Licence d'exploitation",
+                          icon: FileBarChart,
+                          description: "Permis d'exploitation d'un restaurant",
+                          color: "text-green-500",
+                        },
+                        {
+                          title: "Certification sanitaire",
+                          icon: FileBadge,
+                          description: "Conformité aux normes d'hygiène",
+                          color: "text-purple-500",
+                        },
+                      ].map((doc, i) => (
+                        <div
+                          key={i}
+                          className="bg-white rounded-lg border border-dashed border-gray-300 p-4 hover:border-gray-400 transition-colors group">
+                          <div className="h-36 flex flex-col items-center justify-center text-center">
+                            <doc.icon
+                              className={`h-10 w-10 ${doc.color} mb-3 opacity-70`}
                             />
-                          </FormControl>
-                          <FormDescription>
-                            Frais supplémentaires appliqués pour l'emballage à
-                            emporter
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Onglet Documents */}
-            <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-orange-600" />
-                    Documents légaux et certifications
-                  </CardTitle>
-                  <CardDescription>
-                    Gérez vos documents d'entreprise, licences et certifications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <Alert
-                    variant="default"
-                    className="bg-amber-50 border-amber-200">
-                    <Info className="h-4 w-4 text-amber-600" />
-                    <AlertTitle>Fonctionnalité à venir</AlertTitle>
-                    <AlertDescription>
-                      La gestion de documents sera bientôt disponible. Vous
-                      pourrez télécharger et organiser vos documents légaux,
-                      licences et certifications.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[
-                      {
-                        title: "Registre de commerce",
-                        icon: FileCheck,
-                        description: "Document officiel d'enregistrement",
-                      },
-                      {
-                        title: "Licence d'exploitation",
-                        icon: FileBarChart,
-                        description: "Permis d'exploitation d'un restaurant",
-                      },
-                      {
-                        title: "Certification sanitaire",
-                        icon: FileBadge,
-                        description: "Conformité aux normes d'hygiène",
-                      },
-                    ].map((doc, i) => (
-                      <Card
-                        key={i}
-                        className="border-dashed border-gray-300">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-md flex items-center">
-                            <doc.icon className="h-4 w-4 mr-2 text-gray-500" />
-                            {doc.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-20 flex flex-col items-center justify-center">
-                            <p className="text-xs text-gray-500 text-center">
+                            <h4 className="font-medium mb-1">{doc.title}</h4>
+                            <p className="text-xs text-gray-500 mb-4">
                               {doc.description}
                             </p>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="mt-2"
+                              className="mt-2 bg-white group-hover:bg-gray-50"
                               disabled>
-                              <UploadCloud className="h-3 w-3 mr-1" />
+                              <UploadCloud className="h-3.5 w-3.5 mr-1.5" />
                               Télécharger
                             </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                </TabsContent>
 
-            {/* Onglet Paramètres */}
-            <TabsContent value="paramètres">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Settings className="h-5 w-5 mr-2 text-gray-600" />
-                    Paramètres avancés
-                  </CardTitle>
-                  <CardDescription>
-                    Configurez les paramètres avancés de votre restaurant
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-md">
+                {/* Settings Tab */}
+                <TabsContent
+                  value="parametres"
+                  className="mt-0">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-medium flex items-center text-gray-800">
+                      <Settings className="h-5 w-5 mr-2 text-gray-600" />
+                      Paramètres avancés
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white rounded-lg border border-gray-200 p-5">
+                        <h4 className="text-md font-medium mb-4 flex items-center">
+                          <Building className="h-4 w-4 mr-2 text-primary" />
                           Statut du restaurant
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between py-2">
-                          <div>
-                            <h4 className="font-medium">
-                              Activer le restaurant
-                            </h4>
-                            <p className="text-sm text-gray-500">
-                              Si désactivé, le restaurant ne sera pas visible
-                              pour les clients
-                            </p>
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between py-2 border-b border-gray-100 pb-3">
+                            <div>
+                              <h5 className="font-medium">
+                                Activer le restaurant
+                              </h5>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                Si désactivé, le restaurant ne sera pas visible
+                                pour les clients
+                              </p>
+                            </div>
+                            <Switch
+                              checked={true}
+                              className="bg-green-500"
+                              onCheckedChange={() => {
+                                toast({
+                                  title: "Action importante",
+                                  description:
+                                    "La désactivation du restaurant masquera toutes vos offres. Cette fonctionnalité est en cours de développement.",
+                                  variant: "destructive",
+                                });
+                              }}
+                            />
                           </div>
-                          <Switch
-                            checked={true}
-                            disabled
-                            onCheckedChange={() => {}}
-                          />
+                          <div className="flex items-center justify-between py-2">
+                            <div>
+                              <h5 className="font-medium">Mode vacances</h5>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                Désactive temporairement les commandes pendant
+                                votre absence
+                              </p>
+                            </div>
+                            <Switch
+                              checked={false}
+                              onCheckedChange={() => {
+                                toast({
+                                  title: "Fonctionnalité en développement",
+                                  description:
+                                    "Le mode vacances sera disponible prochainement",
+                                  variant: "default",
+                                });
+                              }}
+                            />
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
 
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-md">Notifications</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between py-2">
-                          <div>
-                            <h4 className="font-medium">
-                              Notifications par email
-                            </h4>
-                            <p className="text-sm text-gray-500">
-                              Recevoir des notifications pour les nouvelles
-                              commandes
-                            </p>
+                      <div className="bg-white rounded-lg border border-gray-200 p-5">
+                        <h4 className="text-md font-medium mb-4 flex items-center">
+                          <Mail className="h-4 w-4 mr-2 text-primary" />
+                          Notifications
+                        </h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between py-2 border-b border-gray-100 pb-3">
+                            <div>
+                              <h5 className="font-medium">
+                                Notifications par email
+                              </h5>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                Recevoir des notifications pour les nouvelles
+                                commandes
+                              </p>
+                            </div>
+                            <Switch
+                              checked={true}
+                              className="bg-green-500"
+                              onCheckedChange={() => {
+                                toast({
+                                  title: "Configuration des notifications",
+                                  description:
+                                    "Les paramètres de notifications email seront configurables prochainement",
+                                  variant: "default",
+                                });
+                              }}
+                            />
                           </div>
-                          <Switch
-                            checked={true}
-                            disabled
-                            onCheckedChange={() => {}}
-                          />
+                          <div className="flex items-center justify-between py-2">
+                            <div>
+                              <h5 className="font-medium">Notifications SMS</h5>
+                              <p className="text-sm text-gray-500 mt-0.5">
+                                Recevoir des alertes SMS pour les commandes
+                                urgentes
+                              </p>
+                            </div>
+                            <Switch
+                              checked={false}
+                              onCheckedChange={() => {
+                                toast({
+                                  title: "Fonctionnalité en développement",
+                                  description:
+                                    "Les notifications SMS seront bientôt disponibles",
+                                  variant: "default",
+                                });
+                              }}
+                            />
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
+
+                    <Alert
+                      variant="default"
+                      className="bg-blue-50 border-blue-200 mt-6">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <AlertTitle>Plus d'options à venir</AlertTitle>
+                      <AlertDescription>
+                        D'autres paramètres avancés seront bientôt disponibles
+                        pour configurer votre expérience.
+                      </AlertDescription>
+                    </Alert>
                   </div>
+                </TabsContent>
+              </div>
 
-                  <Alert
-                    variant="default"
-                    className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
-                    <AlertTitle>Plus d'options à venir</AlertTitle>
-                    <AlertDescription>
-                      D'autres paramètres avancés seront bientôt disponibles
-                      pour configurer votre expérience.
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            </TabsContent>
+              {/* Save buttons */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end items-center space-x-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={isSaving}
+                  className="bg-white">
+                  Annuler
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSaving || isUploading}
+                  className="min-w-36">
+                  {isSaving ? (
+                    <div className="flex items-center">
+                      <span className="mr-2">Enregistrement</span>
+                      <div className="w-16 h-1 bg-white/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-white transition-all duration-300 ease-in-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Enregistrer les modifications
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </Tabs>
+      </div>
 
-            {/* Boutons de sauvegarde */}
-            <div className="flex justify-end mt-6 space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                disabled={isSaving}>
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSaving || isUploading}
-                className="min-w-32">
-                {isSaving ? (
-                  <>
-                    <span className="mr-2">Enregistrement</span>
-                    <Progress
-                      value={uploadProgress}
-                      className="w-12 h-2"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Enregistrer les modifications
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </Tabs>
-
-      {/* Dialogue de confirmation de suppression */}
+      {/* Delete confirmation dialog */}
       <Dialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-600">
+            <DialogTitle className="text-red-600 flex items-center">
+              <Trash2 className="h-5 w-5 mr-2" />
               Supprimer le restaurant
             </DialogTitle>
             <DialogDescription>
@@ -904,16 +1371,17 @@ export function RestaurantManagement({
             <p className="font-semibold">{restaurant.name}</p>
             <p className="text-sm text-gray-500">{restaurant.address}</p>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-end">
             <Button
               variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}>
+              onClick={() => setDeleteDialogOpen(false)}
+              className="bg-white">
               Annuler
             </Button>
             <Button
               variant="destructive"
               onClick={() => {
-                // Logique de suppression à implémenter
+                // Delete logic to implement
                 setDeleteDialogOpen(false);
                 toast({
                   title: "Fonctionnalité à venir",
@@ -930,370 +1398,61 @@ export function RestaurantManagement({
   );
 }
 
-// Composant de squelette pour le chargement
+// Loading skeleton
 function RestaurantManagementSkeleton({ message }: { message: string }) {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex items-center space-x-4">
-          <Skeleton className="h-10 w-10 rounded-md" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Header skeleton */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-4">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="flex items-center">
+              <Skeleton className="h-16 w-16 rounded-lg mr-4" />
+              <div>
+                <Skeleton className="h-7 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-10" />
           </div>
         </div>
-        <Skeleton className="h-10 w-32" />
       </div>
 
-      <Skeleton className="h-12 w-full mb-8" />
+      {/* Tabs skeleton */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <Skeleton className="h-14 w-full" />
 
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-48 mb-2" />
-          <Skeleton className="h-4 w-full max-w-md" />
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className="h-12 w-full"
+        <div className="p-6">
+          <Skeleton className="h-7 w-48 mb-4" />
+
+          <div className="space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="h-12 w-full"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center justify-center flex-col">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            <p className="text-gray-500 font-medium">{message}</p>
+          </div>
+          <div className="w-64 h-1.5 bg-gray-100 rounded-full mt-4 overflow-hidden">
+            <div
+              className="h-full bg-primary animate-pulse"
+              style={{ width: "60%" }}
             />
-          ))}
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-center mt-8 flex-col">
-        <div className="flex items-center space-x-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-          <p className="text-gray-500">{message || "Chargement en cours..."}</p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-{
-  /* Nom et cuisine */
-}
-{
-  /* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Nom du restaurant
-                            <span className="text-red-500 ml-1">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="Le Bistrot Gourmand" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="cuisineTypes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Types de cuisine
-                            <span className="text-red-500 ml-1">*</span>
-                          </FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange([...field.value, value])}
-                            value={undefined}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sélectionner un type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {CUISINE_TYPES.filter(
-                                (type) => !field.value.includes(type)
-                              ).map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {field.value.map((type) => (
-                              <Badge key={type} variant="secondary" className="pl-2">
-                                {type}
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  className="h-5 w-5 p-0 ml-1"
-                                  onClick={() =>
-                                    field.onChange(
-                                      field.value.filter((t) => t !== type)
-                                    )
-                                  }
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </Badge>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div> */
-}
-
-{
-  /* Adresse */
-}
-{
-  /* <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Adresse
-                          <span className="text-red-500 ml-1">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="123 Rue de la Gastronomie, 75001 Paris"
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          L'adresse exacte de votre restaurant
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )} */
-}
-{
-  /* /> */
-}
-
-{
-  /* Contact */
-}
-{
-  /* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Téléphone
-                            <span className="text-red-500 ml-1">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                className="pl-9"
-                                placeholder="+212 5 22 123 456"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Email
-                            <span className="text-red-500 ml-1">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                className="pl-9"
-                                placeholder="contact@monrestaurant.com"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div> */
-}
-
-{
-  /* Site web */
-}
-{
-  /* <FormField */
-}
-{
-  /* //     control={form.control} */
-}
-//     name="website"
-//     render={({ field }) => (
-//       <FormItem>
-//         <FormLabel>Site web (optionnel)</FormLabel>
-//         <FormControl>
-//           <div className="relative">
-//             <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-//             <Input
-//               className="pl-9"
-//               placeholder="https://www.monrestaurant.com"
-//               {...field}
-//             />
-//           </div>
-//         </FormControl>
-//         <FormDescription>
-//           Votre site web ou page de réseaux sociaux
-//         </FormDescription>
-//         <FormMessage />
-//       </FormItem>
-//     )}
-//   />
-// </CardContent>
-//   </Card>
-// </TabsContent>
-
-{
-  /* Onglet Horaires */
-}
-// <TabsContent value="horaires">
-//   <Card>
-//     <CardHeader>
-//       <CardTitle className="flex items-center">
-//         <Clock className="h-5 w-5 mr-2 text-green-600" />
-//         Horaires d'ouverture
-//       </CardTitle>
-//       <CardDescription>
-//         Définissez les jours et horaires d'ouverture de votre restaurant
-//       </CardDescription>
-//     </CardHeader>
-//     <CardContent>
-//       <Alert variant="default" className="bg-blue-50 border-blue-200 mb-6">
-//         <Info className="h-4 w-4 text-blue-600" />
-//         <AlertTitle>Information</AlertTitle>
-//         <AlertDescription>
-//           Les horaires sont affichés sur votre page de commande et permettent aux clients de savoir quand votre restaurant est ouvert.
-//         </AlertDescription>
-//       </Alert>
-
-//       <div className="space-y-6">
-//         {openingHours.map((hours, index) => (
-//           <div
-//             key={hours.day}
-//             className="grid grid-cols-12 gap-4 items-center border-b pb-4"
-//           >
-//             <div className="col-span-2">
-//               <h4 className="font-medium">{hours.day}</h4>
-//             </div>
-
-//             <div className="col-span-3 flex items-center space-x-2">
-//               <Switch
-//                 checked={hours.open}
-//                 onCheckedChange={(checked) =>
-//                   handleOpeningHoursChange(index, "open", checked)
-//                 }
-//               />
-//               <span
-//                 className={
-//                   hours.open ? "text-green-600" : "text-red-500"
-//                 }
-//               >
-//                 {hours.open ? "Ouvert" : "Fermé"}
-//               </span>
-//             </div>
-
-//             {hours.open ? (
-//               <>
-//                 <div className="col-span-3">
-//                   <label className="text-xs text-gray-500">
-//                     Heure d'ouverture
-//                   </label>
-//                   <Input
-//                     type="time"
-//                     value={hours.openTime}
-//                     onChange={(e) =>
-//                       handleOpeningHoursChange(
-//                         index,
-//                         "openTime",
-//                         e.target.value
-//                       )
-//                     }
-//                   />
-//                 </div>
-//                 <div className="col-span-3">
-//                   <label className="text-xs text-gray-500">
-//                     Heure de fermeture
-//                   </label>
-//                   <Input
-//                     type="time"
-//                     value={hours.closeTime}
-//                     onChange={(e) =>
-//                       handleOpeningHoursChange(
-//                         index,
-//                         "closeTime",
-//                         e.target.value
-//                       )
-//                     }
-//                   />
-//                 </div>
-//                 <div className="col-span-1">
-//                   {hours.openTime && hours.closeTime && (
-//                     <span className="text-xs text-gray-500">
-//                       {calculateDuration(hours.openTime, hours.closeTime)}
-//                     </span>
-//                   )}
-//                 </div>
-//               </>
-//             ) : (
-//               <div className="col-span-7 text-sm text-gray-500">
-//                 Restaurant fermé ce jour-là
-//               </div>
-//             )}
-//           </div>
-//         ))}
-//       </div>
-
-//       <div className="mt-6 flex justify-end">
-//         <Button
-//           type="button"
-//           variant="outline"
-//           onClick={() => {
-//             // Appliquer les mêmes horaires à tous les jours
-//             if (openingHours.length > 0) {
-//               const firstDay = openingHours[0];
-//               const updatedHours = openingHours.map(day => ({
-//                 ...day,
-//                 open: firstDay.open,
-//                 openTime: firstDay.openTime,
-//                 closeTime: firstDay.closeTime,
-//               }));
-//               setOpeningHours(updatedHours);
-
-//               toast({
-//                 title: "Horaires copiés",
-//                 description: "Les horaires du lundi ont été appliqués à tous les jours",
-//               });
-//             }
-//           }}
-//         >
-//           Appliquer à tous les jours
-//         </Button>
-//       </div>
-//     </CardContent>
-//   </Card>
-// </TabsContent>

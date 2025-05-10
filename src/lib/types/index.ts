@@ -41,6 +41,8 @@ export interface OpeningHours {
 export interface DeliveryOption {
   type: string;
   available: boolean;
+  minOrderAmount: number;
+  deliveryFee: number;
 }
 // Food types
 export interface Category {

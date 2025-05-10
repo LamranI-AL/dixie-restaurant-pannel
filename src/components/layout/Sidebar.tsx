@@ -233,7 +233,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
         <SidebarSection title="Gestion de l'Entreprise">
           <SidebarItem
-            href="/settings"
+            href="/settings/edite"
             icon={Settings2}
             label="Configuration du Restaurant"
             isActive={location === "/settings"}
