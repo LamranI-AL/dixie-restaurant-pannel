@@ -432,7 +432,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                 <span className="text-gray-600">
                   {formatPrice(
                     parseFloat(String(order.subtotal || 0)) -
-                      parseFloat(String(order.totalAmount || 0)) +
+                      parseFloat(String(order.total || 0)) +
                       parseFloat(String(order.tax || 0)) +
                       parseFloat(String(order.deliveryFee || 0)),
                   )}{" "}
@@ -467,7 +467,7 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
               </div>
               <div className="flex justify-between font-semibold border-t pt-2 mt-2">
                 <span>Total:</span>
-                <span>{formatPrice(order.totalAmount)} MAD</span>
+                <span>{formatPrice(order.total)} MAD</span>
               </div>
             </div>
           </div>
@@ -517,26 +517,28 @@ export default function OrderDetailsComponent({ orderId }: OrderDetailsProps) {
                 <PenLine size={16} />
               </button>
             </div>
-            {/* <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm">
               <div className="grid grid-cols-3 gap-1">
                 <span className="text-gray-500">Nom:</span>
-                <span className="col-span-2">{order.customerName}</span>
+                <span className="col-span-2">{userOrder?.displayName}</span>
               </div>
               <div className="grid grid-cols-3 gap-1">
                 <span className="text-gray-500">Contact:</span>
                 <span className="col-span-2">{order.customerPhone}</span>
               </div>
-              {order.customerAddress ? (
+              {order.deliveryLocation ? (
                 <div className="grid grid-cols-3 gap-1">
                   <span className="text-gray-500">Adresse:</span>
-                  <span className="col-span-2">{order.customerAddress}</span>
+                  <span className="col-span-2">
+                    {order.deliveryLocation.address}
+                  </span>
                 </div>
               ) : (
                 <div className="pt-2 mt-2 border-t border-gray-200 text-center">
                   <p className="text-gray-500">Adresse non définie</p>
                 </div>
               )}
-            </div> */}
+            </div>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg">

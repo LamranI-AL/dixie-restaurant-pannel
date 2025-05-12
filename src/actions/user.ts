@@ -36,13 +36,15 @@ export async function addUser(data: any) {
   try {
     // Préparer l'objet utilisateur en se basant sur le type User
     const newUser = {
-      email: data.email,
-      name: data.name,
-      role: data.role || "staff",
+      uid: data.uid,
+      email: data.email || "",
+      displayName: data.displayName || "",
+      phoneNumber: data.phoneNumber || "",
+      address: data.address || "",
+      role: "customer", //
       photoURL: data.photoURL || null,
-      restaurantId: data.restaurantId,
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      lastLoginAt: data.lastLoginAt || serverTimestamp(),
     };
 
     // Enregistrer l'utilisateur dans Firebase en utilisant l'API modulaire
@@ -74,7 +76,7 @@ export async function addUser(data: any) {
 export async function getAllUsers() {
   try {
     const userRef = collection(db, "users");
-    const q = query(userRef, orderBy("createdAt", "desc"));
+    const q = query(userRef);
     const querySnapshot = await getDocs(q);
 
     const users: User[] = [];
@@ -521,11 +523,11 @@ export async function getAllUsersOrders() {
     }
 
     // Trier les commandes par date (la plus récente en premier)
-    allOrders.sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
+    // allOrders.sort((a, b) => {
+    //   const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    //   const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    //   return dateB - dateA;
+    // });
 
     return { success: true, orders: allOrders };
   } catch (error) {

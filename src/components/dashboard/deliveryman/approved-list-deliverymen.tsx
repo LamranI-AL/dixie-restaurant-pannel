@@ -30,7 +30,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Check, Eye, FileText, X } from "lucide-react";
 import { approveDeliveryman, rejectDeliveryman } from "@/actions/deliveryman";
 import { useToast } from "@/lib/hooks/hooks/use-toast";
@@ -125,16 +124,6 @@ export const PendingDeliverymenTable: React.FC<
     }
   };
 
-  // const formatDate = (date: Date | string | undefined) => {
-  //   if (!date) return "N/A";
-  //   const dateObj = typeof date === "string" ? new Date(date) : date;
-  //   return dateObj.toLocaleDateString("fr-FR", {
-  //     day: "2-digit",
-  //     month: "2-digit",
-  //     year: "numeric",
-  //   });
-  // };
-
   const columns: ColumnDef<Deliveryman>[] = [
     {
       header: "Image",
@@ -176,7 +165,7 @@ export const PendingDeliverymenTable: React.FC<
       header: "Ajouté le",
       cell: ({ row }) => {
         const deliveryman = row.original;
-        return formatDate(deliveryman.createdAt as any);
+        return formatDate(new Date(deliveryman.createdAt as any));
       },
     },
     {
@@ -311,7 +300,9 @@ export const PendingDeliverymenTable: React.FC<
                     </h3>
                     <p className="text-sm text-gray-500">
                       Candidature du{" "}
-                      {formatDate(selectedDeliveryman.createdAt as any)}
+                      {formatDate(
+                        new Date(selectedDeliveryman.createdAt as any),
+                      )}
                     </p>
                   </div>
                 </div>
@@ -327,7 +318,9 @@ export const PendingDeliverymenTable: React.FC<
                     <div>{selectedDeliveryman.age} ans</div>
                     <div className="text-gray-500">Date de naissance:</div>
                     <div>
-                      {formatDate(selectedDeliveryman.birthdate as any)}
+                      {formatDate(
+                        new Date(selectedDeliveryman.birthdate as any),
+                      )}
                     </div>
                   </div>
                 </div>

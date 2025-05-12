@@ -60,7 +60,7 @@ const getPaymentStatusColor = (
 export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
-  const [userOrder, setUserOrder] = useState<User>();
+  // const [userOrder, setUserOrder] = useState<User>();
 
   const exportData = () => {
     // Implement your export logic here
@@ -150,7 +150,7 @@ export default function OrdersPage() {
     );
     doc.setFont("helvetica", "bold");
     doc.text(
-      `Total : ${order.totalAmount ? order.totalAmount.toFixed(2) : "0"} MAD`,
+      `Total : ${order.total ? order.total.toFixed(2) : "0"} MAD`,
       rightX,
       (lineY += lineSpacing),
     );
@@ -184,15 +184,15 @@ export default function OrdersPage() {
         console.error("Error fetching categories");
       }
     };
-    const getUserOrder = async (userId: string) => {
-      const { success, user } = await getUserByUid(userId);
-      console.log(user);
-      if (success) {
-        setUserOrder(user as User);
-      } else {
-        console.error("Error fetching user");
-      }
-    };
+    // const getUserOrder = async (userId: string) => {
+    //   const { success, user } = await getUserByUid(userId);
+    //   console.log(user);
+    //   if (success) {
+    //     setUserOrder(user as User);
+    //   } else {
+    //     console.error("Error fetching user");
+    //   }
+    // };
     fetchFoods();
   }, []);
   return (
@@ -309,7 +309,7 @@ export default function OrdersPage() {
                 <TableRow key={order.id}>
                   <TableCell className="text-center">{index + 1}</TableCell>
                   <TableCell>{order.orderNumber}</TableCell>
-                  <TableCell>{formatDate(order.orderDate)}</TableCell>
+                  <TableCell>{formatDate(new Date(order.createdAt))}</TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">
@@ -343,9 +343,6 @@ export default function OrdersPage() {
                         ? "Delivered"
                         : "Pending"}
                     </div>
-                    {/* <div className="text-muted-foreground text-xs mt-1">
-                      Delivery
-                    </div> */}
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-center gap-1">

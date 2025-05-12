@@ -23,6 +23,7 @@ import {
   Timestamp,
   serverTimestamp,
 } from "firebase/firestore";
+import { sendDeliverymanApprovalEmail } from "@/emails/deliveryman-approval";
 
 // CREATE: Add a new deliveryman
 export async function addDeliveryman(data: Deliveryman) {
@@ -222,6 +223,7 @@ export async function getPendingDeliverymen() {
 }
 
 // Fonction pour approuver un livreur
+// Après:
 export async function approveDeliveryman(id: string) {
   try {
     // 1. Récupérer les données de la candidature
@@ -240,15 +242,30 @@ export async function approveDeliveryman(id: string) {
       ...applicationData,
       isApproved: true,
       status: "active",
-      createdAt: applicationData.createdAt || serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: applicationData.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      approvedAt: new Date().toISOString(),
     });
 
-    // 3. Supprimer la candidature de la collection deliverymen_applications
+    // 3. Envoyer l'email d'approbation avec les identifiants
+    // const emailResult = await sendDeliverymanApprovalEmail(id);
+    // console.log(emailResult)
+
+    // 4. Supprimer la candidature de la collection deliverymen_applications
     await deleteDoc(applicationRef);
 
     // Revalidez le chemin pour mettre à jour les données affichées
     revalidatePath("/dashboard/deliverymen");
+
+    // Si l'email n'a pas été envoyé, on retourne quand même un succès
+    // mais avec un message d'erreur qui sera affiché à l'utilisateur
+    // if (!emailResult.success) {
+    //   console.error("Erreur lors de l'envoi de l'email:", emailResult.error);
+    //   return {
+    //     success: true,
+    //     error: "Livreur approuvé mais l'email n'a pas pu être envoyé",
+    //   };
+    // }
 
     return { success: true };
   } catch (error) {

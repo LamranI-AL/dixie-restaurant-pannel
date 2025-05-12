@@ -103,11 +103,12 @@ export interface Addon {
 export interface Order {
   id: string;
   orderNumber: string;
+  customerPhone: string;
   items: OrderItem[];
   subtotal: number;
   OrderStatus: string;
   tax: number;
-  address: {
+  deliveryLocation: {
     address: string;
     latitude: number;
     longitude: number;
@@ -117,7 +118,7 @@ export interface Order {
   packagingFee: number;
   userId: string;
   discount: number;
-  totalAmount: number;
+  total: number;
   paymentStatus: "paid" | "unpaid" | "refunded";
   paymentMethod: string;
   orderStatus: OrderStatus;

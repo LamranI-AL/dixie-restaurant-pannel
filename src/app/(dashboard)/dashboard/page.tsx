@@ -33,7 +33,7 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { YearlySales, TrendingFood } from "@/lib/types";
+import { YearlySales, TrendingFood, Order, User } from "@/lib/types";
 import Image from "next/image";
 // import { getOrderStatistics } from "@/actions/ordres";
 import { getPopularFoods } from "@/actions/food";
@@ -42,6 +42,11 @@ import { useOrders } from "@/lib/hooks/hooks/useOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/lib/hooks/hooks/use-toast";
 import { getOrderStatistics, getOrderStatisticsAlt } from "@/actions/user";
+import {
+  calculateOrderStats,
+  fetchOrdersFromFirebase,
+} from "@/actions/chart-stats";
+import OrdersAnalyticsChart from "@/components/dashboard/chart-stats";
 
 // Type pour les statistiques de commandes
 interface OrderStats {
@@ -55,29 +60,55 @@ interface OrderStats {
 // Couleurs pour le graphique en secteurs
 const COLORS = ["#ffa726", "#42a5f5", "#66bb6a", "#ef5350"];
 
-// Mock data for yearly sales
-const yearlyData: YearlySales[] = [
-  { month: "Jan", sales: 0, commission: 0 },
-  { month: "Feb", sales: 0, commission: 0 },
-  { month: "Mar", sales: 0, commission: 0 },
-  { month: "Apr", sales: 0, commission: 0 },
-  { month: "May", sales: 0, commission: 0 },
-  { month: "Jun", sales: 0, commission: 0 },
-  { month: "Jul", sales: 0, commission: 0 },
-  { month: "Aug", sales: 0, commission: 0 },
-  { month: "Sep", sales: 0, commission: 0 },
-  { month: "Oct", sales: 0, commission: 0 },
-  { month: "Nov", sales: 0, commission: 0 },
-  { month: "Dec", sales: 4200, commission: 0 },
-];
-
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(true);
   const [popFoods, setPopFoods] = useState<TrendingFood[]>([]);
-  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  // const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const { toast } = useToast();
+  const [orderStats, setOrderStats] = useState<any>({
+    totalRevenue: 0,
+    averageOrderValue: 0,
+    totalOrders: 0,
+  });
+  // Charger les statistiques pour le dashboard
+  useEffect(() => {
+    const loadDashboardData = async (): Promise<void> => {
+      setIsLoading(true);
+      try {
+        // Récupérer les commandes des 30 derniers jours pour les statistiques
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Si selectedUserId est "all", on récupère toutes les commandes, sinon on filtre par utilisateur
+        const userId = selectedUserId !== "all" ? selectedUserId : undefined;
+
+        const ordersData = await fetchOrdersFromFirebase({
+          startDate: thirtyDaysAgo,
+          userId: userId,
+        });
+
+        setOrders(ordersData as any);
+
+        // Calculer les statistiques
+        const stats = calculateOrderStats(ordersData);
+        setOrderStats(stats);
+      } catch (error) {
+        console.error(
+          "Erreur lors du chargement des données du dashboard:",
+          error,
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, [selectedUserId]);
 
   // Préparer les données pour le graphique en secteurs des commandes
   const getOrderChartData = () => {
@@ -89,6 +120,9 @@ export default function DashboardPage() {
       { name: "Livrées", value: orderStats.delivered, color: COLORS[2] },
       { name: "Annulées", value: orderStats.cancelled, color: COLORS[3] },
     ];
+  };
+  const handleUserChange = (userId: string): void => {
+    setSelectedUserId(userId);
   };
 
   // Charger les statistiques de commandes
@@ -357,7 +391,13 @@ export default function DashboardPage() {
       </div>
 
       {/* CHART */}
+      {/* Nouveau composant de graphique des commandes */}
       <div className="col-span-3">
+        <OrdersAnalyticsChart className="h-full" />
+      </div>
+
+      {/* Votre graphique de statistiques annuelles existant */}
+      {/* <div className="col-span-3">
         <Card className="h-full">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <div className="flex items-center">
@@ -367,104 +407,9 @@ export default function DashboardPage() {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              {isChartLoading ? (
-                <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md">
-                  <div className="flex flex-col items-center">
-                    <Skeleton className="h-4 w-32 mb-2" />
-                    <Skeleton className="h-40 w-full max-w-xl rounded-md" />
-                    <div className="flex justify-center mt-4 space-x-4">
-                      <Skeleton className="h-3 w-32 rounded-full" />
-                      <Skeleton className="h-3 w-32 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%">
-                  <AreaChart
-                    data={yearlyData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}>
-                    <defs>
-                      <linearGradient
-                        id="colorSales"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1">
-                        <stop
-                          offset="5%"
-                          stopColor="#82ca9d"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#82ca9d"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorCommission"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1">
-                        <stop
-                          offset="5%"
-                          stopColor="#8884d8"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#8884d8"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="commission"
-                      stroke="#8884d8"
-                      fillOpacity={1}
-                      fill="url(#colorCommission)"
-                      name="Commission donnée"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="sales"
-                      stroke="#82ca9d"
-                      fillOpacity={1}
-                      fill="url(#colorSales)"
-                      name="Gains totaux"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <div className="flex justify-center mt-4 space-x-6">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-                <span className="text-sm">Commission donnée : 0,00 €</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-400 mr-2"></div>
-                <span className="text-sm">Gains totaux : 0,00 €</span>
-              </div>
-            </div>
-          </CardContent>
+          <CardContent>teste</CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* top selling foods */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,12 +1,20 @@
 /** @format */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 // import { createOrder } from "@/actions/ordres"; // Server Action pour créer une commande
-import { Loader2, PlusCircle, Trash2, ChevronLeft } from "lucide-react";
-import { Addon, Order, OrderItem, OrderStatus, Restaurant } from "@/lib/types"; // Importation des types
+import { Loader2, PlusCircle, Trash2, ChevronLeft, Search } from "lucide-react";
+import {
+  Addon,
+  Order,
+  OrderItem,
+  OrderStatus,
+  Restaurant,
+  Food,
+  Variation,
+} from "@/lib/types"; // Importation des types
 
 // Importation des composants shadcn
 import { Button } from "@/components/ui/button";
@@ -35,37 +43,44 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
-import { addOrder } from "@/actions/ordres";
-import { createOrderForUser } from "@/actions/user";
-
-// Type pour les éléments de commande (adapté à votre type OrderItem)
-// interface TempOrderItem {
-//   id: string;
-//   name: string;
-//   price: number;
-//   quantity: number;
-//   addons: {
-//     id: string;
-//     name: string;
-//     price: number;
-//   }[];
-//   totalPrice: number;
-//   // Ajout des champs requis par votre type OrderItem
-//   foodId?: string;
-//   variations: { name: string; price: number }[];
-//   subtotal: number;
-// }
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+// import { addOrder } from "@/actions/ordres";
+import { addUser, createOrderForUser } from "@/actions/user";
+// Actions pour récupérer les plats existants
+import { getAllFoods } from "@/actions/food";
 
 export default function AddOrderForm() {
   const router = useRouter();
 
-  // État pour charger les restaurants (à remplacer par votre vraie API)
   const [restaurants, setRestaurants] = useState<Restaurant[] | any[]>([
     { id: "1", name: "Restaurant Dixie" },
   ]);
 
+  // État pour les plats existants
+  const [existingFoods, setExistingFoods] = useState<Food[]>([]);
+  const [filteredFoods, setFilteredFoods] = useState<Food[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   // État pour le chargement
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingFoods, setIsLoadingFoods] = useState(false);
 
   // État pour les items de la commande
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -84,21 +99,59 @@ export default function AddOrderForm() {
 
   // Nouvelles valeurs temporaires pour l'item en cours d'ajout
   const [newItem, setNewItem] = useState({
-    name: "",
-    price: "",
     quantity: "1",
   });
+  // Fonction pour mettre à jour la sélection (restaurant, méthode de paiement, etc.)
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  // Nouvelle valeur temporaire pour l'addon en cours d'ajout
-  const [newAddon, setNewAddon] = useState({
-    name: "",
-    price: "",
-  });
+  // État pour les variants sélectionnés pour l'article en cours
+  const [selectedVariations, setSelectedVariations] = useState<Variation[]>([]);
 
-  // Addons temporaires pour l'item en cours d'ajout
-  const [tempAddons, setTempAddons] = useState<
-    { id: string; name: string; price: number }[]
-  >([]);
+  // Addon et variant sélectionnés pour l'article en cours
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
+
+  // Charger tous les plats au chargement du composant
+  useEffect(() => {
+    loadAllFoods();
+  }, []);
+
+  // Fonction pour charger tous les plats (sans filtrer par restaurant)
+  const loadAllFoods = async () => {
+    setIsLoadingFoods(true);
+    try {
+      // Cette fonction devrait être implémentée dans vos actions pour récupérer tous les plats
+      const { foods } = await getAllFoods(); // Il faudra créer cette fonction dans vos actions
+
+      // Utiliser les données réelles ou mock selon le cas
+      setExistingFoods(foods as any);
+      setFilteredFoods(foods as any);
+    } catch (error) {
+      console.error("Erreur lors du chargement des plats:", error);
+      toast.error("Impossible de charger les plats disponibles");
+    } finally {
+      setIsLoadingFoods(false);
+    }
+  };
+
+  // Fonction pour filtrer les plats
+  const handleSearchFood = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    if (query.trim() === "") {
+      setFilteredFoods(existingFoods);
+    } else {
+      const filtered = existingFoods.filter(
+        (food) =>
+          food.name.toLowerCase().includes(query) ||
+          food.description?.toLowerCase().includes(query) ||
+          food.categoryId?.toLowerCase().includes(query),
+      );
+      setFilteredFoods(filtered);
+    }
+  };
 
   // Fonction pour mettre à jour les données du formulaire
   const handleFormChange = (
@@ -108,95 +161,81 @@ export default function AddOrderForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Fonction pour mettre à jour la sélection (restaurant, méthode de paiement, etc.)
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Fonction pour mettre à jour les valeurs du nouvel item
-  const handleNewItemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewItem((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Fonction pour mettre à jour les valeurs du nouvel addon
-  const handleNewAddonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewAddon((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Fonction pour ajouter un addon temporaire
-  const addTempAddon = () => {
-    if (newAddon.name.trim() === "" || newAddon.price.trim() === "") {
-      toast.error("Veuillez remplir tous les champs du supplément");
-      return;
+  // Fonction pour toggle une variation
+  const toggleVariation = (variation: Variation) => {
+    const exists = selectedVariations.some((item) => item.id === variation.id);
+    if (exists) {
+      setSelectedVariations(
+        selectedVariations.filter((item) => item.id !== variation.id),
+      );
+    } else {
+      setSelectedVariations([...selectedVariations, variation]);
     }
-
-    const price = parseFloat(newAddon.price);
-    if (isNaN(price) || price < 0) {
-      toast.error("Le prix du supplément doit être un nombre positif");
-      return;
-    }
-
-    const addon = {
-      id: `addon_${Date.now()}`,
-      name: newAddon.name,
-      price: price,
-    };
-
-    setTempAddons((prev) => [...prev, addon]);
-    setNewAddon({ name: "", price: "" });
   };
 
-  // Fonction pour supprimer un addon temporaire
-  const removeTempAddon = (id: string) => {
-    setTempAddons((prev) => prev.filter((addon) => addon.id !== id));
+  // Fonction pour sélectionner un plat
+  const selectFood = (food: Food) => {
+    setSelectedFood(food);
+    setSelectedAddons([]);
+    setSelectedVariations([]);
+    setNewItem({
+      quantity: "1",
+    });
+    setIsDialogOpen(true);
   };
 
-  // Fonction pour ajouter un item à la commande
-  const addItemToOrder = () => {
-    if (newItem.name.trim() === "" || newItem.price.trim() === "") {
-      toast.error("Veuillez remplir tous les champs de l'article");
-      return;
+  // Fonction pour toggle un addon dans les sélectionnés
+  const toggleAddon = (addon: Addon) => {
+    const exists = selectedAddons.some((item) => item.id === addon.id);
+    if (exists) {
+      setSelectedAddons(selectedAddons.filter((item) => item.id !== addon.id));
+    } else {
+      setSelectedAddons([...selectedAddons, addon]);
     }
+  };
 
-    const price = parseFloat(newItem.price);
+  // Fonction pour ajouter un item sélectionné à la commande
+  const addSelectedFoodToOrder = () => {
+    if (!selectedFood) return;
+
     const quantity = parseInt(newItem.quantity);
-
-    if (isNaN(price) || price < 0) {
-      toast.error("Le prix doit être un nombre positif");
-      return;
-    }
-
     if (isNaN(quantity) || quantity <= 0) {
       toast.error("La quantité doit être un nombre positif");
       return;
     }
 
-    // Calculer le prix total de l'item (y compris les addons)
-    const addonsTotalPrice = tempAddons.reduce(
+    // Calculer le prix total de l'item (y compris les addons et variations)
+    const addonsTotalPrice = selectedAddons.reduce(
       (sum, addon) => sum + addon.price,
       0,
     );
-    const totalItemPrice = (price + addonsTotalPrice) * quantity;
+
+    // Calculer le prix supplémentaire des variations
+    const variationsTotalPrice = selectedVariations.reduce(
+      (sum, variation) => sum + variation.price,
+      0,
+    );
+
+    // Prix de base + prix des variations + prix des addons
+    const baseItemPrice = selectedFood.price + variationsTotalPrice;
+    const totalItemPrice = (baseItemPrice + addonsTotalPrice) * quantity;
 
     const item: OrderItem = {
       id: `item_${Date.now()}`,
-      name: newItem.name,
-      price: price,
+      foodId: selectedFood.id,
+      name: selectedFood.name,
+      price: baseItemPrice, // Prix de base avec variations
       quantity: quantity,
-      addons: [...tempAddons] as Addon[],
-
+      addons: [...selectedAddons],
+      variations: [...selectedVariations],
       subtotal: totalItemPrice,
-      foodId: "", // Ensure this is always a string
-      variations: [], // Adapt as needed
-      //   subtotal: totalItemPrice,
     };
 
     setOrderItems((prev) => [...prev, item]);
-    setNewItem({ name: "", price: "", quantity: "1" });
-    setTempAddons([]);
-
+    setIsDialogOpen(false);
+    setSelectedFood(null);
+    setSelectedAddons([]);
+    setSelectedVariations([]);
     toast.success("Article ajouté à la commande");
   };
 
@@ -210,8 +249,8 @@ export default function AddOrderForm() {
   const calculateTotals = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
     const tax = subtotal * 0; // TVA 0%
-    const deliveryFee = formData.orderType === "delivery" ? 15 : 0; // Frais de livraison
-    const packagingFee = 1.5; // Frais d'emballage
+    const deliveryFee = formData.orderType === "delivery" ? 10 : 0; // Frais de livraison
+    const packagingFee = 0; // Frais d'emballage
     const total = subtotal + tax + deliveryFee + packagingFee;
 
     return {
@@ -251,6 +290,7 @@ export default function AddOrderForm() {
       // Préparation des données de la commande selon la structure de la base de données Firebase
       const orderData: Order | any = {
         ...formData,
+        userId: "adminUser11", // Toujours utiliser cet ID d'administrateur
         items: orderItems.map((item) => ({
           id: item.id,
           foodId: item.foodId || "",
@@ -271,17 +311,29 @@ export default function AddOrderForm() {
         tax: totals.tax,
         deliveryFee: totals.deliveryFee,
         packagingFee: totals.packagingFee,
-        totalAmount: totals.total,
+        total: totals.total,
         discount: 0, // À implémenter si nécessaire
         paymentStatus: "unpaid", // Par défaut
         orderStatus: "pending" as OrderStatus,
-        address: {
+        deliveryLocation: {
           address: formData.customerAddress || "ask admin please",
           latitude: 1,
           longitude: 1,
         }, // Conversion explicite selon le type OrderStatus
         // orderDate: new Date(),
       };
+
+      // Créer également un utilisateur avec les informations du client (si nécessaire)
+      // await addUser({
+      //   uid: "adminUser11", // ID administrateur fixe
+      //   displayName: formData.customerName,
+      //   email:
+      //     formData.customerEmail || `${formData.customerPhone}@example.com`,
+      //   phone: formData.customerPhone,
+      //   address: formData.customerAddress || "",
+      //   lastLoginAt: new Date(Date.now()),
+      //   // Autres propriétés utilisateur si nécessaires
+      // });
 
       // Envoi des données au serveur avec l'action serveur
       const result = await createOrderForUser("adminUser11", orderData as any); // Assurez-vous que le type est correct
@@ -302,7 +354,6 @@ export default function AddOrderForm() {
       setIsSubmitting(false);
     }
   };
-  // console.log("orderItems", orderItems);
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -465,208 +516,291 @@ export default function AddOrderForm() {
 
         {/* Section Articles */}
         <Card>
-          <CardHeader>
-            <CardTitle>Articles de la commande</CardTitle>
-            <CardDescription>
-              Ajoutez les articles que le client a commandés
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Accordion
-              type="single"
-              collapsible
-              className="mb-6">
-              <AccordionItem value="add-item">
-                <AccordionTrigger className="text-orange-500 font-medium">
-                  Ajouter un nouvel article
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 p-4 border rounded-md bg-gray-50">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="itemName">Nom de l'article *</Label>
-                        <Input
-                          id="itemName"
-                          name="name"
-                          value={newItem.name}
-                          onChange={handleNewItemChange}
-                          placeholder="Nom de l'article"
-                        />
-                      </div>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Articles de la commande</CardTitle>
+              <CardDescription>
+                Ajoutez les articles que le client a commandés
+              </CardDescription>
+            </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="itemPrice">Prix (MAD) *</Label>
-                        <Input
-                          id="itemPrice"
-                          name="price"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={newItem.price}
-                          onChange={handleNewItemChange}
-                          placeholder="0.00"
-                        />
-                      </div>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-orange-400 to-orange-600">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Ajouter un article
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Sélectionner un article</DialogTitle>
+                  <DialogDescription>
+                    Choisissez parmi les articles disponibles au restaurant
+                  </DialogDescription>
+                </DialogHeader>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="itemQuantity">Quantité *</Label>
-                        <Input
-                          id="itemQuantity"
-                          name="quantity"
-                          type="number"
-                          min="1"
-                          value={newItem.quantity}
-                          onChange={handleNewItemChange}
-                          placeholder="1"
-                        />
-                      </div>
+                <div className="relative mt-4">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                  <Input
+                    placeholder="Rechercher un article..."
+                    value={searchQuery}
+                    onChange={handleSearchFood}
+                    className="pl-9"
+                  />
+                </div>
+
+                {isLoadingFoods ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                  </div>
+                ) : filteredFoods.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Aucun article trouvé</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      {filteredFoods.map((food) => (
+                        <Card
+                          key={food.id}
+                          className={`cursor-pointer transition hover:border-orange-300 ${
+                            selectedFood?.id === food.id
+                              ? "border-orange-500 bg-orange-50"
+                              : ""
+                          }`}
+                          onClick={() => selectFood(food)}>
+                          <CardContent className="p-4 flex items-center">
+                            <div className="h-16 w-16 rounded-md bg-orange-100 mr-4 flex-shrink-0 flex items-center justify-center">
+                              {food.image ? (
+                                <img
+                                  src={food.image}
+                                  alt={food.name}
+                                  className="h-full w-full object-cover rounded-md"
+                                />
+                              ) : (
+                                <div className="text-orange-500 text-xl font-semibold">
+                                  {food.name.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-grow">
+                              <h3 className="font-semibold">{food.name}</h3>
+                              <p className="text-sm text-gray-500 line-clamp-1">
+                                {food.description || "Aucune description"}
+                              </p>
+                              <p className="text-orange-600 font-medium mt-1">
+                                {food.price.toFixed(2)} MAD
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
 
-                    {/* Section pour ajouter des suppléments */}
-                    <div className="mt-4">
-                      <h3 className="font-medium mb-2">Suppléments</h3>
+                    {selectedFood && (
+                      <div className="mt-6 border-t pt-4">
+                        <h3 className="font-semibold text-lg mb-2">
+                          {selectedFood.name}
+                        </h3>
 
-                      {tempAddons.length > 0 && (
-                        <div className="mb-4 space-y-2">
-                          {tempAddons.map((addon) => (
-                            <div
-                              key={addon.id}
-                              className="flex justify-between items-center p-2 bg-white rounded border">
-                              <span>{addon.name}</span>
-                              <div className="flex items-center gap-4">
-                                <span className="text-gray-600">
-                                  {addon.price.toFixed(2)} MAD
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeTempAddon(addon.id)}>
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                          <div>
+                            <Label htmlFor="itemQuantity">Quantité</Label>
+                            <Input
+                              id="itemQuantity"
+                              name="quantity"
+                              type="number"
+                              min="1"
+                              value={newItem.quantity}
+                              onChange={(e) =>
+                                setNewItem({
+                                  ...newItem,
+                                  quantity: e.target.value,
+                                })
+                              }
+                              className="mt-1"
+                            />
+                          </div>
+
+                          {selectedFood.addons &&
+                            selectedFood.addons.length > 0 && (
+                              <div>
+                                <Label className="mb-2 block">
+                                  Suppléments disponibles
+                                </Label>
+                                <div className="space-y-2">
+                                  {selectedFood.addons.map((addon) => (
+                                    <div
+                                      key={addon.id}
+                                      className="flex items-center justify-between p-2 border rounded-md">
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`addon-${addon.id}`}
+                                          checked={selectedAddons.some(
+                                            (item) => item.id === addon.id,
+                                          )}
+                                          onChange={() => toggleAddon(addon)}
+                                          className="h-4 w-4 text-orange-500"
+                                        />
+                                        <Label
+                                          htmlFor={`addon-${addon.id}`}
+                                          className="cursor-pointer text-sm m-0">
+                                          {addon.name}
+                                        </Label>
+                                      </div>
+                                      <span className="text-gray-600 text-sm">
+                                        +{addon.price.toFixed(2)} MAD
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="addonName">Nom du supplément</Label>
-                          <Input
-                            id="addonName"
-                            name="name"
-                            value={newAddon.name}
-                            onChange={handleNewAddonChange}
-                            placeholder="Ex: Sauce supplémentaire"
-                          />
+                          {/* Affichage des variations */}
+                          {selectedFood.variations &&
+                            selectedFood.variations.length > 0 && (
+                              <div className="mt-4">
+                                <Label className="mb-2 block">
+                                  Variations disponibles
+                                </Label>
+                                <div className="space-y-2">
+                                  {selectedFood.variations.map((variation) => (
+                                    <div
+                                      key={variation.id}
+                                      className="flex items-center justify-between p-2 border rounded-md">
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          type="checkbox"
+                                          id={`variation-${variation.id}`}
+                                          checked={selectedVariations.some(
+                                            (item) => item.id === variation.id,
+                                          )}
+                                          onChange={() =>
+                                            toggleVariation(variation)
+                                          }
+                                          disabled={!variation.isAvailable}
+                                          className="h-4 w-4 text-orange-500"
+                                        />
+                                        <Label
+                                          htmlFor={`variation-${variation.id}`}
+                                          className={`cursor-pointer text-sm m-0 ${
+                                            !variation.isAvailable
+                                              ? "text-gray-400"
+                                              : ""
+                                          }`}>
+                                          {variation.name}
+                                          {!variation.isAvailable &&
+                                            " (Non disponible)"}
+                                        </Label>
+                                      </div>
+                                      {variation.price > 0 && (
+                                        <span className="text-gray-600 text-sm">
+                                          +{variation.price.toFixed(2)} MAD
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="addonPrice">Prix (MAD)</Label>
-                          <Input
-                            id="addonPrice"
-                            name="price"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={newAddon.price}
-                            onChange={handleNewAddonChange}
-                            placeholder="0.00"
-                          />
-                        </div>
-
-                        <div className="flex items-end">
+                        <div className="mt-6 flex justify-end gap-4">
                           <Button
-                            type="button"
                             variant="outline"
-                            onClick={addTempAddon}
-                            className="w-full border-orange-500 text-orange-500">
-                            Ajouter un supplément
+                            onClick={() => setIsDialogOpen(false)}>
+                            Annuler
+                          </Button>
+                          <Button
+                            onClick={addSelectedFoodToOrder}
+                            className="bg-gradient-to-r from-orange-400 to-orange-600">
+                            Ajouter à la commande
                           </Button>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex justify-end mt-4">
-                      <Button
-                        type="button"
-                        onClick={addItemToOrder}
-                        className="bg-gradient-to-r from-orange-400 to-orange-600">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Ajouter à la commande
-                      </Button>
-                    </div>
+                    )}
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
+                )}
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent>
             {orderItems.length === 0 ? (
               <div className="text-center py-8 border-2 border-dashed rounded-md">
                 <p className="text-gray-500">
                   Aucun article ajouté à la commande
                 </p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Utilisez le formulaire ci-dessus pour ajouter des articles
+                  Cliquez sur "Ajouter un article" pour sélectionner des plats
+                  du menu
                 </p>
               </div>
             ) : (
               <div className="border rounded-md overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Article
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Prix unitaire
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Qté
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Suppléments
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead>Article</TableHead>
+                      <TableHead>Prix unitaire</TableHead>
+                      <TableHead>Qté</TableHead>
+                      <TableHead>Suppléments</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="bg-white divide-y divide-gray-200">
                     {orderItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
                           {item.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.price.toFixed(2)} MAD
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.quantity}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
+                        </TableCell>
+                        <TableCell>{item.price.toFixed(2)} MAD</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>
                           {item.addons.length > 0 ? (
                             <ul className="list-disc list-inside">
                               {item.addons.map((addon: any) => (
-                                <li key={addon.id}>
+                                <li
+                                  key={addon.id}
+                                  className="text-sm">
                                   {addon.name} (+{addon.price.toFixed(2)} MAD)
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <span className="text-gray-400">
+                            <span className="text-gray-400 text-sm">
                               Aucun supplément
                             </span>
                           )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+
+                          {/* Affichage des variations */}
+                          {item.variations && item.variations.length > 0 && (
+                            <div className="mt-2 border-t pt-2">
+                              <span className="text-xs text-gray-500 font-semibold">
+                                Variations:
+                              </span>
+                              <ul className="list-disc list-inside">
+                                {item.variations.map((variation: any) => (
+                                  <li
+                                    key={variation.id}
+                                    className="text-sm">
+                                    {variation.name}
+                                    {variation.price > 0 &&
+                                      ` (+${variation.price.toFixed(2)} MAD)`}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
                           {item.subtotal.toFixed(2)} MAD
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
                             type="button"
                             variant="ghost"
@@ -674,11 +808,11 @@ export default function AddOrderForm() {
                             onClick={() => removeOrderItem(item.id)}>
                             <Trash2 className="h-5 w-5 text-red-500" />
                           </Button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

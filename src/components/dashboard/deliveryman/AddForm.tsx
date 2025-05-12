@@ -133,7 +133,7 @@ export default function AddDeliveryman() {
         password: values.password,
         profileImageUrl: imageProfile as string,
         identityImageUrl: imageIdentifier as string,
-        status: "inactive",
+        status: "active",
         createdAt: new Date(Date.now()),
         id: "0",
         updatedAt: new Date(),

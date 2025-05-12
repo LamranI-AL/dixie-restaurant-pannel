@@ -231,22 +231,6 @@ export function FoodTable({ foods }: FoodTableProps) {
     }
   };
 
-  const handleSuccessfulEdit = (updatedFood: Food) => {
-    toast({
-      title: "Modification réussie",
-      description: `Les détails de "${updatedFood.name}" ont été mis à jour.`,
-      variant: "default",
-      duration: 3000,
-    });
-
-    setLocalFoods((prev) =>
-      prev.map((food) => (food.id === updatedFood.id ? updatedFood : food)),
-    );
-
-    setFoodToEdit(null);
-    router.refresh();
-  };
-
   // Define columns for the table
   const columns: ColumnDef<Food>[] = useMemo(
     () => [
@@ -309,11 +293,11 @@ export function FoodTable({ foods }: FoodTableProps) {
         header: "Prix (MAD)",
         cell: ({ row }) => (
           <div>
-            <div className="font-medium">
+            <div className="font-medium text-xs text-red-500 line-through">
               {row.original.price.toFixed(2)} MAD
             </div>
             {row.original.discountPrice && (
-              <div className="text-xs text-red-500 line-through">
+              <div className="font-medium ">
                 {row.original.discountPrice.toFixed(2)} MAD
               </div>
             )}

@@ -481,7 +481,6 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               )}
             </div>
           </div>
-
           {/* Rating and stats */}
           <div className="flex items-center space-x-6">
             {food.rating && (
@@ -501,16 +500,15 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               </span>
             )}
           </div>
-
           {/* Price */}
           <div className="flex items-baseline">
             {food.discountPrice ? (
               <>
                 <span className="text-2xl font-bold text-blue-600">
-                  {food.discountPrice.toFixed(2)} €
+                  {food.discountPrice.toFixed(2)} MAD
                 </span>
                 <span className="ml-2 text-gray-500 line-through">
-                  {food.price.toFixed(2)} €
+                  {food.price.toFixed(2)} MAD
                 </span>
                 <Badge className="ml-2 bg-red-500 hover:bg-red-600">
                   -
@@ -522,11 +520,10 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               </>
             ) : (
               <span className="text-2xl font-bold text-blue-600">
-                {food.price.toFixed(2)} €
+                {food.price.toFixed(2)} MAD
               </span>
             )}
           </div>
-
           {/* Description */}
           <div>
             <h2 className="text-lg font-medium mb-2">Description</h2>
@@ -535,9 +532,7 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
                 "Aucune description disponible pour ce plat."}
             </p>
           </div>
-
           <Separator />
-
           {/* Variations and Addons */}
           <Tabs
             defaultValue="variations"
@@ -579,7 +574,7 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
                           <span className="font-medium">{variation.name}</span>
                         </div>
                         <span className="text-blue-600 font-medium">
-                          {variation.price.toFixed(2)} €
+                          {variation.price.toFixed(2)} MAD
                         </span>
                       </div>
                     </div>
@@ -615,7 +610,7 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
                           <span className="font-medium">{addon.name}</span>
                         </div>
                         <span className="text-blue-600 font-medium">
-                          +{addon.price.toFixed(2)} €
+                          +{addon.price.toFixed(2)} MAD
                         </span>
                       </div>
                     </div>
@@ -629,7 +624,6 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               )}
             </TabsContent>
           </Tabs>
-
           {/* Quantity */}
           <div className="mt-6">
             <div className="flex justify-between items-center mb-2">
@@ -654,7 +648,6 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               </div>
             </div>
           </div>
-
           {/* Total and add to cart */}
           <div className="flex justify-between items-center pt-4 border-t">
             <div>
@@ -671,7 +664,6 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               Ajouter au panier
             </Button> */}
           </div>
-
           {!food.isAvailable && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center">
               <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
@@ -681,7 +673,6 @@ export default function FoodDetailsComponent({ foodId }: FoodDetailsProps) {
               </p>
             </div>
           )}
-
           {/* Restaurant info if available */}
           {food.restaurantId && (
             <Card className="mt-4">
