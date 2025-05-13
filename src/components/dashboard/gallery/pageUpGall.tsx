@@ -6,7 +6,7 @@ import React from "react";
 // import { RestaurantGallery } from "@/components/restaurant-gallery";
 // import { GalleryPopupButton
 import { Toaster } from "sonner";
-import GalleryPopupButton from "./GalleryPopupButton";
+// import GalleryPopupButton from "./GalleryPopupButton";
 import RestaurantGallery from "./add-gallery-form";
 // import RestaurantGallery from "./galleryList";
 
