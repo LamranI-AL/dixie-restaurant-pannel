@@ -15,17 +15,17 @@ import { Users, TrendingUp, AlertTriangle } from "lucide-react";
 import React from "react";
 
 // Fonction utilitaire pour garantir que les données sont sérialisables
-function ensureSerializedData(data: any) {
-  if (!data) return [];
+// function ensureSerializedData(data: any) {
+//   if (!data) return [];
 
-  // Filtrer les valeurs null ou undefined
-  return data.filter((item: any) => item !== null && item !== undefined);
-}
+//   // Filtrer les valeurs null ou undefined
+//   return data.filter((item: any) => item !== null && item !== undefined);
+// }
 
 async function ActiveDeliverymenPage() {
   const result = await getAllActiveDeliverymen();
-  const deliverymen = result.success
-    ? ensureSerializedData(result.deliverymen)
+  const deliverymen: Deliveryman[] | any = result.success
+    ? result.deliverymen
     : [];
 
   // Éviter le console.log qui peut causer des problèmes d'affichage

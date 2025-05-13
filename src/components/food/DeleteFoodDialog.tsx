@@ -16,7 +16,7 @@ import { useState } from "react";
 import { Loader2, Trash2, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { deleteFood } from "@/actions/food";
-
+// export const dynamic = "force-dynamic";
 interface DeleteFoodDialogProps {
   food: Food;
   open: boolean;

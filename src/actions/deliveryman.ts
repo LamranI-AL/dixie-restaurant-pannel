@@ -23,7 +23,6 @@ import {
   Timestamp,
   serverTimestamp,
 } from "firebase/firestore";
-import { sendDeliverymanApprovalEmail } from "@/emails/deliveryman-approval";
 
 // // Fonction utilitaire pour sérialiser les objets Firebase
 function serializeFirebaseData(obj: any): any {
@@ -124,12 +123,15 @@ export async function getAllDeliverymen() {
     const deliverymen: Deliveryman[] = [];
     querySnapshot.forEach((doc) => {
       // Sérialiser les données pour éviter les erreurs de toJSON
-      const serializedData = serializeDeliverymanData({
+      // const serializedData = serializeDeliverymanData({
+      //   id: doc.id,
+      //   ...doc.data(),
+      // });
+
+      deliverymen.push({
         id: doc.id,
         ...doc.data(),
-      });
-
-      deliverymen.push(serializedData as Deliveryman);
+      } as Deliveryman);
     });
 
     return { success: true, deliverymen };

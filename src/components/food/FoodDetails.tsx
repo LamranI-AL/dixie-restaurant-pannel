@@ -46,7 +46,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Addon, Food, Variation } from "@/lib/types";
 import { getFoodById } from "@/actions/food";
 import { EditFoodDialog } from "./EditFoodDialog";
-
+// export const dynamic = "force-dynamic";
 const FoodDetailsSkeleton: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-8">

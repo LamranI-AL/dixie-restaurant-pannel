@@ -73,7 +73,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddFoodDialog } from "./add-food-dialog";
-
+// export const dynamic = "force-dynamic";
 interface FoodTableProps {
   foods: Food[];
 }

@@ -20,8 +20,7 @@ import {
   serializeFirebaseData,
   serializeFirebaseDocument,
 } from "@/utils/serializeData";
-
-// CREATE: Add a new food item
+// export const dynamic = "force-dynamic";// CREATE: Add a new food item
 export async function addFood(data: Food) {
   const {
     name,

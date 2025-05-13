@@ -28,7 +28,7 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { getAllCategories } from "@/actions/category";
 import { updateFood } from "@/actions/food";
-
+// export const dynamic = "force-dynamic";
 interface EditFoodDialogProps {
   food: Food;
   open: boolean;
