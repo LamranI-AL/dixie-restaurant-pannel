@@ -121,16 +121,6 @@ export const ActiveDeliverymenTable: React.FC<ActiveDeliverymenTableProps> = ({
     }
   }, [statusFilter]);
 
-  // const formatDate = (date: Date | string | undefined) => {
-  //   if (!date) return "N/A";
-  //   const dateObj = typeof date === "string" ? new Date(date) : date;
-  //   return dateObj.toLocaleDateString("fr-FR", {
-  //     day: "2-digit",
-  //     month: "2-digit",
-  //     year: "numeric",
-  //   });
-  // };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -240,7 +230,7 @@ export const ActiveDeliverymenTable: React.FC<ActiveDeliverymenTableProps> = ({
       "Zone",
       "Véhicule",
       "Statut",
-      "Ajouté le",
+      // "Ajouté le",
     ];
 
     const csvData = deliverymen.map((d) => [
@@ -358,31 +348,31 @@ export const ActiveDeliverymenTable: React.FC<ActiveDeliverymenTableProps> = ({
         return value === row.getValue(id);
       },
     },
-    {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <div
-          className="flex items-center cursor-pointer"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Ajouté le
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </div>
-      ),
-      cell: ({ row }) => {
-        const deliveryman = row.original;
-        return formatDate(deliveryman.createdAt as any);
-      },
-      sortingFn: (rowA, rowB, columnId) => {
-        // Conversion en timestamps pour le tri
-        const dateA = rowA.original.createdAt
-          ? new Date(rowA.original.createdAt).getTime()
-          : 0;
-        const dateB = rowB.original.createdAt
-          ? new Date(rowB.original.createdAt).getTime()
-          : 0;
-        return dateA - dateB;
-      },
-    },
+    // {
+    //   accessorKey: "createdAt",
+    //   header: ({ column }) => (
+    //     <div
+    //       className="flex items-center cursor-pointer"
+    //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+    //       Ajouté le
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </div>
+    //   ),
+    //   cell: ({ row }) => {
+    //     const deliveryman = row.original;
+    //     return formatDate(deliveryman.createdAt as any);
+    //   },
+    //   sortingFn: (rowA, rowB, columnId) => {
+    //     // Conversion en timestamps pour le tri
+    //     const dateA = rowA.original.createdAt
+    //       ? new Date(rowA.original.createdAt).getTime()
+    //       : 0;
+    //     const dateB = rowB.original.createdAt
+    //       ? new Date(rowB.original.createdAt).getTime()
+    //       : 0;
+    //     return dateA - dateB;
+    //   },
+    // },
     {
       id: "actions",
       header: "Actions",

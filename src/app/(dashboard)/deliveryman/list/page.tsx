@@ -1,6 +1,6 @@
 /** @format */
 
-import { getAllActiveDeliverymen } from "@/actions/deliveryman";
+import { getAllDeliverymen } from "@/actions/deliveryman";
 import { ActiveDeliverymenTable } from "@/components/dashboard/deliveryman/DeliverymenList";
 import {
   Card,
@@ -23,7 +23,7 @@ import React from "react";
 // }
 
 async function ActiveDeliverymenPage() {
-  const result = await getAllActiveDeliverymen();
+  const result = await getAllDeliverymen();
   const deliverymen: Deliveryman[] | any = result.success
     ? result.deliverymen
     : [];
