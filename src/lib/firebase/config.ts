@@ -2,7 +2,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -19,11 +19,34 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Configuration avancée de Firestore avec gestion du cache
-export const db = initializeFirestore(app, {
-  ignoreUndefinedProperties: true,
-});
+// Utiliser getFirestore standard sans aucune configuration de cache
+export const db = getFirestore(app);
 
 export const storage = getStorage(app);
+
+// Fonction utilitaire pour convertir les Timestamps Firestore en objets Date
+export function convertTimestamps(obj: any): any {
+  if (!obj) return null;
+
+  if (Array.isArray(obj)) {
+    return obj.map(convertTimestamps);
+  }
+
+  if (typeof obj === "object" && obj !== null) {
+    // Si c'est un timestamp
+    if (obj.seconds !== undefined && obj.nanoseconds !== undefined) {
+      return new Date(obj.seconds * 1000);
+    }
+
+    // Récursion pour les objets imbriqués
+    const result: Record<string, any> = {};
+    for (const key in obj) {
+      result[key] = convertTimestamps(obj[key]);
+    }
+    return result;
+  }
+
+  return obj;
+}
 
 export default app;

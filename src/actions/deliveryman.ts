@@ -154,12 +154,15 @@ export async function getDeliverymenByFilter(
     const deliverymen: Deliveryman[] = [];
     querySnapshot.forEach((doc) => {
       // Sérialiser les données
-      const serializedData = serializeDeliverymanData({
+      // const serializedData = serializeDeliverymanData({
+      //   id: doc.id,
+      //   ...doc.data(),
+      // });
+
+      deliverymen.push({
         id: doc.id,
         ...doc.data(),
-      });
-
-      deliverymen.push(serializedData as Deliveryman);
+      } as Deliveryman);
     });
 
     return { success: true, deliverymen };
@@ -177,14 +180,17 @@ export async function getDeliverymanById(id: string) {
 
     if (docSnap.exists()) {
       // Sérialiser les données
-      const serializedData = serializeDeliverymanData({
-        id: docSnap.id,
-        ...docSnap.data(),
-      });
+      // const serializedData = serializeDeliverymanData({
+      //   id: docSnap.id,
+      //   ...docSnap.data(),
+      // });
 
       return {
         success: true,
-        deliveryman: serializedData as Deliveryman,
+        deliveryman: {
+          id: docSnap.id,
+          ...docSnap.data(),
+        } as Deliveryman,
       };
     } else {
       return { success: false, error: "Deliveryman not found" };
