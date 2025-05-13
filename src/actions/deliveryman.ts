@@ -16,74 +16,69 @@ import {
 import { db } from "@/lib/firebase/config";
 import { Deliveryman } from "@/lib/types";
 
-import { revalidatePath } from "next/cache";
-import {
-  setDoc,
-  orderBy,
-  Timestamp,
-  serverTimestamp,
-} from "firebase/firestore";
+// import { revalidatePath } from "next/cache";
+import { setDoc } from "firebase/firestore";
 
 // // Fonction utilitaire pour sérialiser les objets Firebase
-function serializeFirebaseData(obj: any): any {
-  if (!obj) return null;
+// function serializeFirebaseData(obj: any): any {
+//   if (!obj) return null;
 
-  // Si c'est une date Firebase/Firestore (avec seconds et nanoseconds)
-  if (
-    obj &&
-    typeof obj === "object" &&
-    obj.seconds !== undefined &&
-    obj.nanoseconds !== undefined
-  ) {
-    try {
-      return new Date(obj.seconds * 1000).toISOString();
-    } catch (error) {
-      console.error("Error converting timestamp:", error);
-      return null;
-    }
-  }
+//   // Si c'est une date Firebase/Firestore (avec seconds et nanoseconds)
+//   if (
+//     obj &&
+//     typeof obj === "object" &&
+//     obj.seconds !== undefined &&
+//     obj.nanoseconds !== undefined
+//   ) {
+//     try {
+//       return new Date(obj.seconds * 1000).toISOString();
+//     } catch (error) {
+//       console.error("Error converting timestamp:", error);
+//       return null;
+//     }
+//   }
 
-  // Si c'est un tableau, appliquer la fonction à chaque élément
-  if (Array.isArray(obj)) {
-    return obj.map((item) => serializeFirebaseData(item));
-  }
+//   // Si c'est un tableau, appliquer la fonction à chaque élément
+//   if (Array.isArray(obj)) {
+//     return obj.map((item) => serializeFirebaseData(item));
+//   }
 
-  // Si c'est un objet, appliquer la fonction à chaque propriété
-  if (obj && typeof obj === "object" && obj !== null) {
-    const newObj: Record<string, any> = {};
-    Object.keys(obj).forEach((key) => {
-      newObj[key] = serializeFirebaseData(obj[key]);
-    });
-    return newObj;
-  }
+//   // Si c'est un objet, appliquer la fonction à chaque propriété
+//   if (obj && typeof obj === "object" && obj !== null) {
+//     const newObj: Record<string, any> = {};
+//     Object.keys(obj).forEach((key) => {
+//       newObj[key] = serializeFirebaseData(obj[key]);
+//     });
+//     return newObj;
+//   }
 
-  // Sinon, retourner la valeur telle quelle
-  return obj;
-}
+//   // Sinon, retourner la valeur telle quelle
+//   return obj;
+// }
 
-// Fonction pour sérialiser un document de livreur
-function serializeDeliverymanData(data: any) {
-  if (!data) return null;
+// // Fonction pour sérialiser un document de livreur
+// function serializeDeliverymanData(data: any) {
+//   if (!data) return null;
 
-  const serialized = { ...data };
+//   const serialized = { ...data };
 
-  // Traiter spécifiquement les champs de date connus
-  if (serialized.updatedAt) {
-    serialized.updatedAt = serializeFirebaseData(serialized.updatedAt);
-  }
-  if (serialized.createdAt) {
-    serialized.createdAt = serializeFirebaseData(serialized.createdAt);
-  }
-  if (serialized.approvedAt) {
-    serialized.approvedAt = serializeFirebaseData(serialized.approvedAt);
-  }
-  if (serialized.birthdate) {
-    serialized.birthdate = serializeFirebaseData(serialized.birthdate);
-  }
+//   // Traiter spécifiquement les champs de date connus
+//   if (serialized.updatedAt) {
+//     serialized.updatedAt = serializeFirebaseData(serialized.updatedAt);
+//   }
+//   if (serialized.createdAt) {
+//     serialized.createdAt = serializeFirebaseData(serialized.createdAt);
+//   }
+//   if (serialized.approvedAt) {
+//     serialized.approvedAt = serializeFirebaseData(serialized.approvedAt);
+//   }
+//   if (serialized.birthdate) {
+//     serialized.birthdate = serializeFirebaseData(serialized.birthdate);
+//   }
 
-  // Vérifier les autres champs qui pourraient contenir des objets
-  return serialized;
-}
+//   // Vérifier les autres champs qui pourraient contenir des objets
+//   return serialized;
+// }
 
 // CREATE: Add a new deliveryman
 export async function addDeliveryman(data: Deliveryman) {
@@ -248,13 +243,10 @@ export async function getAllActiveDeliverymen() {
     querySnapshot.forEach((doc) => {
       const rawData = doc.data();
 
-      // Sérialiser les données pour éviter les problèmes de toJSON
-      const serializedData = serializeDeliverymanData({
+      deliverymen.push({
         ...rawData,
         id: doc.id,
-      });
-
-      deliverymen.push(serializedData as Deliveryman);
+      } as Deliveryman);
     });
 
     return {
@@ -282,13 +274,10 @@ export async function getPendingDeliverymen() {
     querySnapshot.forEach((doc) => {
       const rawData = doc.data();
 
-      // Sérialiser les données
-      const serializedData = serializeDeliverymanData({
+      applications.push({
         ...rawData,
         id: doc.id,
-      });
-
-      applications.push(serializedData as Deliveryman);
+      } as Deliveryman);
     });
 
     return {
@@ -328,15 +317,11 @@ export async function approveDeliveryman(id: string) {
       approvedAt: new Date().toISOString(),
     });
 
-    // 3. Envoyer l'email d'approbation avec les identifiants
-    // const emailResult = await sendDeliverymanApprovalEmail(id);
-    // console.log(emailResult)
-
     // 4. Supprimer la candidature de la collection deliverymen_applications
     await deleteDoc(applicationRef);
 
     // Revalidez le chemin pour mettre à jour les données affichées
-    revalidatePath("/dashboard/deliverymen");
+    // revalidatePath("/deliverymen");
 
     return { success: true };
   } catch (error) {
@@ -356,7 +341,7 @@ export async function rejectDeliveryman(id: string) {
     await deleteDoc(applicationRef);
 
     // Revalidez le chemin pour mettre à jour les données affichées
-    revalidatePath("/dashboard/deliverymen");
+    // revalidatePath("/deliverymen");
 
     return { success: true };
   } catch (error) {
@@ -379,7 +364,7 @@ export async function suspendDeliveryman(id: string) {
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées
-    revalidatePath("/dashboard/deliverymen");
+    // revalidatePath("/deliverymen");
 
     return {
       success: true,
@@ -404,7 +389,7 @@ export async function reactivateDeliveryman(id: string) {
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées
-    revalidatePath("/dashboard/deliverymen");
+    // revalidatePath("/deliverymen");
 
     return {
       success: true,
@@ -432,7 +417,7 @@ export async function updateDeliverymanStatus(
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées
-    revalidatePath("/dashboard/deliverymen");
+    // revalidatePath("/deliverymen");
 
     return {
       success: true,
