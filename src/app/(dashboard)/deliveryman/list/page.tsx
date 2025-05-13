@@ -2,7 +2,6 @@
 
 import { getAllActiveDeliverymen } from "@/actions/deliveryman";
 import { ActiveDeliverymenTable } from "@/components/dashboard/deliveryman/DeliverymenList";
-// import { ActiveDeliverymenTable } from "@/components/dashboard/deliveryman/ActiveDeliverymenTable";
 import {
   Card,
   CardContent,
@@ -15,21 +14,31 @@ import { Deliveryman } from "@/lib/types";
 import { Users, TrendingUp, AlertTriangle } from "lucide-react";
 import React from "react";
 
+// Fonction utilitaire pour garantir que les données sont sérialisables
+function ensureSerializedData(data: any) {
+  if (!data) return [];
+
+  // Filtrer les valeurs null ou undefined
+  return data.filter((item: any) => item !== null && item !== undefined);
+}
+
 async function ActiveDeliverymenPage() {
   const result = await getAllActiveDeliverymen();
-  const deliverymen = result.success ? result.deliverymen : [];
-  console.log(result.deliverymen);
-  // Calcul des statistiques
-  const totalDeliverymen = deliverymen?.length;
-  const activeDeliverymen = deliverymen?.filter(
-    (d) => d.status === "active",
-  ).length;
-  const suspendedDeliverymen = deliverymen?.filter(
-    (d) => d.status === "suspended",
-  ).length;
-  const inactiveDeliverymen = deliverymen?.filter(
-    (d) => d.status === "inactive",
-  ).length;
+  const deliverymen = result.success
+    ? ensureSerializedData(result.deliverymen)
+    : [];
+
+  // Éviter le console.log qui peut causer des problèmes d'affichage
+  // console.log(result.deliverymen);
+
+  // Calcul des statistiques avec vérification de sécurité
+  const totalDeliverymen = deliverymen?.length || 0;
+  const activeDeliverymen =
+    deliverymen?.filter((d: any) => d?.status === "active").length || 0;
+  const suspendedDeliverymen =
+    deliverymen?.filter((d: any) => d?.status === "suspended").length || 0;
+  const inactiveDeliverymen =
+    deliverymen?.filter((d: any) => d?.status === "inactive").length || 0;
 
   return (
     <div className="container mx-auto py-6">
@@ -116,7 +125,7 @@ async function ActiveDeliverymenPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ActiveDeliverymenTable data={deliverymen as Deliveryman[]} />
+              <ActiveDeliverymenTable data={deliverymen} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -132,9 +141,7 @@ async function ActiveDeliverymenPage() {
             <CardContent>
               <ActiveDeliverymenTable
                 data={
-                  deliverymen?.filter(
-                    (d) => d.status === "active",
-                  ) as Deliveryman[]
+                  deliverymen?.filter((d: any) => d?.status === "active") || []
                 }
               />
             </CardContent>
@@ -153,9 +160,8 @@ async function ActiveDeliverymenPage() {
             <CardContent>
               <ActiveDeliverymenTable
                 data={
-                  deliverymen?.filter(
-                    (d) => d.status === "inactive",
-                  ) as Deliveryman[]
+                  deliverymen?.filter((d: any) => d?.status === "inactive") ||
+                  []
                 }
               />
             </CardContent>
@@ -174,9 +180,8 @@ async function ActiveDeliverymenPage() {
             <CardContent>
               <ActiveDeliverymenTable
                 data={
-                  deliverymen?.filter(
-                    (d) => d.status === "suspended",
-                  ) as Deliveryman[]
+                  deliverymen?.filter((d: any) => d?.status === "suspended") ||
+                  []
                 }
               />
             </CardContent>

@@ -243,7 +243,7 @@ export function FoodTable({ foods }: FoodTableProps) {
             <div className="relative h-12 w-12 overflow-hidden rounded-md">
               {food.image ? (
                 <Image
-                  src={food.image}
+                  src={food.image || ""}
                   alt={food.name}
                   fill
                   className="object-cover"

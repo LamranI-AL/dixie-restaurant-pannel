@@ -83,6 +83,8 @@ export interface Food {
   rating: number;
   reviewCount: number;
   cuisineId: string;
+  createdAt: Date | any;
+  updatedAt: Date | any;
 }
 
 export interface Variation {

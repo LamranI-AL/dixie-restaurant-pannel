@@ -25,6 +25,67 @@ import {
 } from "firebase/firestore";
 import { sendDeliverymanApprovalEmail } from "@/emails/deliveryman-approval";
 
+// // Fonction utilitaire pour sérialiser les objets Firebase
+function serializeFirebaseData(obj: any): any {
+  if (!obj) return null;
+
+  // Si c'est une date Firebase/Firestore (avec seconds et nanoseconds)
+  if (
+    obj &&
+    typeof obj === "object" &&
+    obj.seconds !== undefined &&
+    obj.nanoseconds !== undefined
+  ) {
+    try {
+      return new Date(obj.seconds * 1000).toISOString();
+    } catch (error) {
+      console.error("Error converting timestamp:", error);
+      return null;
+    }
+  }
+
+  // Si c'est un tableau, appliquer la fonction à chaque élément
+  if (Array.isArray(obj)) {
+    return obj.map((item) => serializeFirebaseData(item));
+  }
+
+  // Si c'est un objet, appliquer la fonction à chaque propriété
+  if (obj && typeof obj === "object" && obj !== null) {
+    const newObj: Record<string, any> = {};
+    Object.keys(obj).forEach((key) => {
+      newObj[key] = serializeFirebaseData(obj[key]);
+    });
+    return newObj;
+  }
+
+  // Sinon, retourner la valeur telle quelle
+  return obj;
+}
+
+// Fonction pour sérialiser un document de livreur
+function serializeDeliverymanData(data: any) {
+  if (!data) return null;
+
+  const serialized = { ...data };
+
+  // Traiter spécifiquement les champs de date connus
+  if (serialized.updatedAt) {
+    serialized.updatedAt = serializeFirebaseData(serialized.updatedAt);
+  }
+  if (serialized.createdAt) {
+    serialized.createdAt = serializeFirebaseData(serialized.createdAt);
+  }
+  if (serialized.approvedAt) {
+    serialized.approvedAt = serializeFirebaseData(serialized.approvedAt);
+  }
+  if (serialized.birthdate) {
+    serialized.birthdate = serializeFirebaseData(serialized.birthdate);
+  }
+
+  // Vérifier les autres champs qui pourraient contenir des objets
+  return serialized;
+}
+
 // CREATE: Add a new deliveryman
 export async function addDeliveryman(data: Deliveryman) {
   try {
@@ -62,7 +123,13 @@ export async function getAllDeliverymen() {
 
     const deliverymen: Deliveryman[] = [];
     querySnapshot.forEach((doc) => {
-      deliverymen.push({ id: doc.id, ...doc.data() } as Deliveryman);
+      // Sérialiser les données pour éviter les erreurs de toJSON
+      const serializedData = serializeDeliverymanData({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      deliverymen.push(serializedData as Deliveryman);
     });
 
     return { success: true, deliverymen };
@@ -84,7 +151,13 @@ export async function getDeliverymenByFilter(
 
     const deliverymen: Deliveryman[] = [];
     querySnapshot.forEach((doc) => {
-      deliverymen.push({ id: doc.id, ...doc.data() } as Deliveryman);
+      // Sérialiser les données
+      const serializedData = serializeDeliverymanData({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      deliverymen.push(serializedData as Deliveryman);
     });
 
     return { success: true, deliverymen };
@@ -101,9 +174,15 @@ export async function getDeliverymanById(id: string) {
     const docSnap = await getDoc(deliverymanRef);
 
     if (docSnap.exists()) {
+      // Sérialiser les données
+      const serializedData = serializeDeliverymanData({
+        id: docSnap.id,
+        ...docSnap.data(),
+      });
+
       return {
         success: true,
-        deliveryman: { id: docSnap.id, ...docSnap.data() } as Deliveryman,
+        deliveryman: serializedData as Deliveryman,
       };
     } else {
       return { success: false, error: "Deliveryman not found" };
@@ -159,17 +238,15 @@ export async function getAllActiveDeliverymen() {
     const deliverymen: Deliveryman[] = [];
 
     querySnapshot.forEach((doc) => {
-      const data = doc.data() as Omit<Deliveryman, "id">;
-      deliverymen.push({
-        ...data,
+      const rawData = doc.data();
+
+      // Sérialiser les données pour éviter les problèmes de toJSON
+      const serializedData = serializeDeliverymanData({
+        ...rawData,
         id: doc.id,
-        // createdAt: data.createdAt
-        //   ? (data.createdAt as any).toDate()
-        //   : new Date(),
-        // updatedAt: data.updatedAt
-        //   ? (data.updatedAt as any).toDate()
-        //   : new Date(),
       });
+
+      deliverymen.push(serializedData as Deliveryman);
     });
 
     return {
@@ -195,18 +272,15 @@ export async function getPendingDeliverymen() {
     const applications: Deliveryman[] = [];
 
     querySnapshot.forEach((doc) => {
-      const data = doc.data() as Omit<Deliveryman, "id">;
-      applications.push({
-        ...data,
+      const rawData = doc.data();
+
+      // Sérialiser les données
+      const serializedData = serializeDeliverymanData({
+        ...rawData,
         id: doc.id,
-        // Convertir les Timestamp Firebase en objets Date JavaScript
-        // createdAt: data.createdAt
-        //   ? (data.createdAt as any).toDate()
-        //   : new Date(),
-        // updatedAt: data.updatedAt
-        //   ? (data.updatedAt as any).toDate()
-        //   : new Date(),
       });
+
+      applications.push(serializedData as Deliveryman);
     });
 
     return {
@@ -223,7 +297,6 @@ export async function getPendingDeliverymen() {
 }
 
 // Fonction pour approuver un livreur
-// Après:
 export async function approveDeliveryman(id: string) {
   try {
     // 1. Récupérer les données de la candidature
@@ -257,16 +330,6 @@ export async function approveDeliveryman(id: string) {
     // Revalidez le chemin pour mettre à jour les données affichées
     revalidatePath("/dashboard/deliverymen");
 
-    // Si l'email n'a pas été envoyé, on retourne quand même un succès
-    // mais avec un message d'erreur qui sera affiché à l'utilisateur
-    // if (!emailResult.success) {
-    //   console.error("Erreur lors de l'envoi de l'email:", emailResult.error);
-    //   return {
-    //     success: true,
-    //     error: "Livreur approuvé mais l'email n'a pas pu être envoyé",
-    //   };
-    // }
-
     return { success: true };
   } catch (error) {
     console.error(`Error approving deliveryman with ID ${id}:`, error);
@@ -296,6 +359,7 @@ export async function rejectDeliveryman(id: string) {
     };
   }
 }
+
 // Fonction pour suspendre un livreur
 export async function suspendDeliveryman(id: string) {
   try {
@@ -303,7 +367,7 @@ export async function suspendDeliveryman(id: string) {
 
     await updateDoc(deliverymanRef, {
       status: "suspended",
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(), // Utiliser ISO string au lieu de serverTimestamp()
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées
@@ -328,7 +392,7 @@ export async function reactivateDeliveryman(id: string) {
 
     await updateDoc(deliverymanRef, {
       status: "active",
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(), // Utiliser ISO string au lieu de serverTimestamp()
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées
@@ -356,7 +420,7 @@ export async function updateDeliverymanStatus(
 
     await updateDoc(deliverymanRef, {
       status,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(), // Utiliser ISO string au lieu de serverTimestamp()
     });
 
     // Revalidez le chemin pour mettre à jour les données affichées

@@ -16,6 +16,10 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config"; // Assurez-vous que ce chemin est correct pour votre configuration
 import { Food, Variation, Addon, TrendingFood } from "@/lib/types";
+import {
+  serializeFirebaseData,
+  serializeFirebaseDocument,
+} from "@/utils/serializeData";
 
 // CREATE: Add a new food item
 export async function addFood(data: Food) {
@@ -73,7 +77,13 @@ export async function getAllFoods() {
 
     const foods: Food[] = [];
     querySnapshot.forEach((doc) => {
-      foods.push({ id: doc.id, ...doc.data() } as Food);
+      // Sérialiser les données avant de les retourner
+      const foodData = serializeFirebaseDocument({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      foods.push(foodData as Food);
     });
 
     return { success: true, foods };
@@ -92,7 +102,13 @@ export async function getFoodsByCategory(categoryId: string) {
 
     const foods: Food[] = [];
     querySnapshot.forEach((doc) => {
-      foods.push({ id: doc.id, ...doc.data() } as Food);
+      // Sérialiser les données
+      const foodData = serializeFirebaseDocument({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      foods.push(foodData as Food);
     });
 
     return { success: true, foods };
@@ -108,9 +124,15 @@ export async function getFoodById(id: string) {
     const docSnap = await getDoc(foodRef);
 
     if (docSnap.exists()) {
+      // Sérialiser les données du document
+      const foodData = serializeFirebaseDocument({
+        id: docSnap.id,
+        ...docSnap.data(),
+      });
+
       return {
         success: true,
-        food: { id: docSnap.id, ...docSnap.data() } as Food,
+        food: foodData as Food,
       };
     } else {
       return { success: false, error: "Food item not found" };
@@ -130,7 +152,13 @@ export async function getPopularFoods() {
 
     const trindingfoods: TrendingFood[] = [];
     querySnapshot.forEach((doc) => {
-      trindingfoods.push({ id: doc.id, ...doc.data() } as TrendingFood);
+      // Sérialiser les données
+      const foodData = serializeFirebaseDocument({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      trindingfoods.push(foodData as TrendingFood);
     });
 
     return { success: true, trindingfoods };
@@ -149,7 +177,13 @@ export async function getTopRatedFoods(limit_count: number = 10) {
 
     const foods: Food[] = [];
     querySnapshot.forEach((doc) => {
-      foods.push({ id: doc.id, ...doc.data() } as Food);
+      // Sérialiser les données
+      const foodData = serializeFirebaseDocument({
+        id: doc.id,
+        ...doc.data(),
+      });
+
+      foods.push(foodData as Food);
     });
 
     return { success: true, foods };
@@ -262,9 +296,15 @@ export async function searchFoods(searchTerm: string) {
 
     const foods: Food[] = [];
     querySnapshot.forEach((doc) => {
-      const foodData = doc.data();
-      if (foodData.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-        foods.push({ id: doc.id, ...foodData } as Food);
+      const rawFoodData = doc.data();
+      if (rawFoodData.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        // Sérialiser les données
+        const foodData = serializeFirebaseDocument({
+          id: doc.id,
+          ...rawFoodData,
+        });
+
+        foods.push(foodData as Food);
       }
     });
 

@@ -1,15 +1,13 @@
 /** @format */
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -25,13 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import {
-//   Popover,
-//   PopoverContent,
-//   PopoverTrigger,
-// } from "@/components/ui/popover";
 import { CalendarIcon, Eye, EyeOff, ImageIcon, Upload } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { addDeliveryman } from "@/actions/deliveryman";
@@ -40,7 +32,8 @@ import { UploadButton } from "@/utils/uploadthing";
 import { toast } from "sonner";
 import Image from "next/image";
 
-// Form validation schema
+// Ne plus utiliser zodResolver ici
+// Définir le schéma zod directement
 const formSchema = z
   .object({
     firstName: z.string().min(2, {
@@ -67,9 +60,6 @@ const formSchema = z
     age: z.string().min(1, {
       message: "Please enter your age.",
     }),
-    // birthdate: z.date({
-    //   required_error: "Please select a birthdate.",
-    // }),
     phone: z.string().min(1, {
       message: "Please enter a phone number.",
     }),
@@ -93,12 +83,11 @@ export default function AddDeliveryman() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [imageIdentifier, setImageIdentifier] = useState<string | null>(null);
-  const [imageProfile, setImageProfile] = useState<string | null>(null);
+  const [imageIdentifier, setImageIdentifier] = useState(null);
+  const [imageProfile, setImageProfile] = useState(null);
 
-  // Initialize form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  // Configuration manuelle de la validation sans zodResolver
+  const form = useForm({
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -113,13 +102,48 @@ export default function AddDeliveryman() {
       password: "",
       confirmPassword: "",
     },
+    // Validation manuelle au lieu d'utiliser zodResolver
+    // async validate(values : any) {
+    //   try {
+    //     formSchema.parse(values);
+    //     return {};
+    //   } catch (error) {
+    //     return error?.formErrors?.fieldErrors! || {};
+    //   }
+    // },
   });
+
+  // Gestionnaires d'événements mémorisés pour éviter les re-renders inutiles
+  const handleProfileUploadComplete = useCallback((res: any) => {
+    // Éviter les mises à jour d'état durant le rendu
+    setTimeout(() => {
+      setImageProfile(res[0].ufsUrl);
+      toast.success("Image uploaded successfully!");
+    }, 0);
+  }, []);
+
+  const handleIdentityUploadComplete = useCallback((res: any) => {
+    // Éviter les mises à jour d'état durant le rendu
+    setTimeout(() => {
+      setImageIdentifier(res[0].ufsUrl);
+      toast.success("Image uploaded successfully!");
+    }, 0);
+  }, []);
+
+  const handleUploadError = useCallback((error: any) => {
+    console.log(error.message);
+    toast.error(error.message);
+  }, []);
+
   // Form submission handler
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: any) => {
     setIsLoading(true);
     try {
+      // Valider les données avec zod manuellement
+      formSchema.parse(values);
+
       // Convert form data to the format needed for Firebase
-      const deliverymanData: Deliveryman = {
+      const deliverymanData = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
@@ -131,8 +155,8 @@ export default function AddDeliveryman() {
         birthdate: new Date(Date.now()).toISOString(),
         phone: values.phone,
         password: values.password,
-        profileImageUrl: imageProfile as string,
-        identityImageUrl: imageIdentifier as string,
+        profileImageUrl: imageProfile,
+        identityImageUrl: imageIdentifier,
         status: "active",
         createdAt: new Date(Date.now()),
         id: "0",
@@ -141,7 +165,7 @@ export default function AddDeliveryman() {
         licenseFile: "",
       };
 
-      const result = await addDeliveryman(deliverymanData);
+      const result = await addDeliveryman(deliverymanData as any);
 
       if (result.success) {
         // Redirect to deliveryman list or show success message
@@ -151,13 +175,10 @@ export default function AddDeliveryman() {
       } else {
         console.error("Error adding deliveryman:", result.error);
         toast.error("❌ Failed to add deliveryman. Please try again.");
-
-        // Handle error - show error message to user
       }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("🚨 An unexpected error occurred.");
-      // Handle error
     } finally {
       setIsLoading(false);
     }
@@ -239,16 +260,8 @@ export default function AddDeliveryman() {
                         </p>
                         <UploadButton
                           endpoint="imageUploader"
-                          onClientUploadComplete={(res) => {
-                            console.log(res[0].ufsUrl! as any);
-                            setImageProfile(res[0].ufsUrl!);
-                            // form.setValue("image", res[0].ufsUrl!);
-                            toast.success("Image uploaded successfully!");
-                          }}
-                          onUploadError={(error: Error) => {
-                            console.log(error.message);
-                            toast.error(error.message);
-                          }}
+                          onClientUploadComplete={handleProfileUploadComplete}
+                          onUploadError={handleUploadError}
                         />
                       </div>
                     )}
@@ -430,16 +443,8 @@ export default function AddDeliveryman() {
                         </p>
                         <UploadButton
                           endpoint="imageUploader"
-                          onClientUploadComplete={(res) => {
-                            console.log(res[0].ufsUrl! as any);
-                            setImageIdentifier(res[0].ufsUrl!);
-                            // form.setValue("image", res[0].ufsUrl!);
-                            toast.success("Image uploaded successfully!");
-                          }}
-                          onUploadError={(error: Error) => {
-                            console.log(error.message);
-                            toast.error(error.message);
-                          }}
+                          onClientUploadComplete={handleIdentityUploadComplete}
+                          onUploadError={handleUploadError}
                         />
                       </div>
                     )}
