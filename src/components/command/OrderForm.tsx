@@ -15,6 +15,14 @@ import {
   Food,
   Variation,
 } from "@/lib/types"; // Importation des types
+import { Tag, Ticket, AlertCircle, X } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+// Importer la fonction de validation de coupon
+// import { validateCoupon, incrementCouponUsage } from "@/lib/firebase/coupons";
+// Ajoutez le type Coupon aux importations
+import { validateCoupon, incrementCouponUsage } from "@/actions/coupons";
+import { Coupon } from "@/lib/types";
 
 // Importation des composants shadcn
 import { Button } from "@/components/ui/button";
@@ -68,7 +76,7 @@ export default function AddOrderForm() {
   const router = useRouter();
 
   const [restaurants, setRestaurants] = useState<Restaurant[] | any[]>([
-    { id: "1", name: "Restaurant Dixie" },
+    { id: "FhnRefHSJQohtFlvilC9", name: "Restaurant Dixie" },
   ]);
 
   // État pour les plats existants
@@ -77,11 +85,87 @@ export default function AddOrderForm() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-
+  // État pour le coupon
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   // État pour le chargement
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingFoods, setIsLoadingFoods] = useState(false);
+  // Fonction pour gérer la saisie du code coupon
+  const handleCouponChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCouponCode(e.target.value);
+    // Réinitialiser les erreurs de coupon lorsque l'utilisateur modifie le code
+    if (couponError) setCouponError(null);
+    // Réinitialiser le coupon appliqué si le code est modifié
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    }
+  };
 
+  // Fonction pour vérifier et appliquer un coupon
+  const handleApplyCoupon = async () => {
+    // Vérifier si un code de coupon a été saisi
+    if (!couponCode.trim()) {
+      setCouponError("Veuillez saisir un code de coupon");
+      return;
+    }
+
+    // Vérifier si un restaurant a été sélectionné
+    if (!formData.restaurantId) {
+      setCouponError("Veuillez d'abord sélectionner un restaurant");
+      return;
+    }
+
+    const subtotal = calculateTotals().subtotal;
+
+    // Vérifier si la commande contient des articles
+    if (subtotal <= 0) {
+      setCouponError("Votre commande doit contenir au moins un article");
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    setCouponError(null);
+
+    try {
+      // Appeler la fonction de validation du coupon
+      const result = await validateCoupon(
+        couponCode,
+        subtotal,
+        formData.restaurantId,
+      );
+
+      if (result.success) {
+        setAppliedCoupon(result.coupon as Coupon);
+        setCouponDiscount(result.discountAmount || 0);
+        toast.success(`Coupon ${result.coupon?.code} appliqué avec succès!`);
+      } else {
+        setCouponError(result.error || "Coupon non valide");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la validation du coupon:", error);
+      setCouponError("Une erreur est survenue lors de la validation du coupon");
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  // Fonction pour supprimer un coupon appliqué
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponCode("");
+    setCouponError(null);
+    toast.info("Coupon supprimé");
+  };
   // État pour les items de la commande
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
@@ -306,8 +390,8 @@ export default function AddOrderForm() {
           formData.orderType === "delivery"
             ? "Livraison"
             : formData.orderType === "pickup"
-            ? "À emporter"
-            : "Sur place",
+              ? "À emporter"
+              : "Sur place",
         tax: totals.tax,
         deliveryFee: totals.deliveryFee,
         packagingFee: totals.packagingFee,
@@ -817,6 +901,95 @@ export default function AddOrderForm() {
             )}
           </CardContent>
         </Card>
+        {/* Section coupon */}
+        <div className="mt-4 mb-3">
+          <div className="flex items-center space-x-2 mb-1">
+            <Ticket className="h-4 w-4 text-gray-500" />
+            <Label
+              htmlFor="couponCode"
+              className="text-sm font-medium">
+              Code coupon
+            </Label>
+          </div>
+          <div className="flex space-x-2">
+            <div className="relative flex-grow">
+              <Input
+                id="couponCode"
+                value={couponCode}
+                onChange={handleCouponChange}
+                placeholder="Entrez un code coupon"
+                disabled={!!appliedCoupon || isValidatingCoupon}
+                className={`${couponError ? "border-red-300 focus:ring-red-500" : ""}`}
+              />
+              {appliedCoupon && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label="Supprimer le coupon">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {!appliedCoupon ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleApplyCoupon}
+                disabled={!couponCode.trim() || isValidatingCoupon}
+                className="whitespace-nowrap">
+                {isValidatingCoupon ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <Tag className="h-4 w-4 mr-1" />
+                )}
+                Appliquer
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRemoveCoupon}
+                className="whitespace-nowrap text-red-600 border-red-200 hover:bg-red-50">
+                <X className="h-4 w-4 mr-1" />
+                Supprimer
+              </Button>
+            )}
+          </div>
+
+          {couponError && (
+            <p className="text-red-600 text-xs mt-1 flex items-center">
+              <AlertCircle className="h-3 w-3 inline mr-1" />
+              {couponError}
+            </p>
+          )}
+
+          {appliedCoupon && (
+            <div className="mt-2">
+              <Badge className="bg-green-50 text-green-700 hover:bg-green-100 border border-green-200">
+                <Ticket className="h-3 w-3 mr-1" />
+                {appliedCoupon.code}:{" "}
+                {appliedCoupon.discountType === "percentage"
+                  ? `${appliedCoupon.discountValue}% de réduction`
+                  : `${appliedCoupon.discountValue.toFixed(2)} MAD de réduction`}
+              </Badge>
+              <p className="text-xs text-gray-500 mt-1">
+                {couponDiscount.toFixed(2)} MAD de réduction appliquée
+              </p>
+            </div>
+          )}
+        </div>
+
+        {totals.total > 0 && (
+          <div className="flex justify-between text-green-600 font-medium">
+            <span>Réduction:</span>
+            <span>-{totals.total.toFixed(2)} MAD</span>
+          </div>
+        )}
+
+        <Separator className="my-2" />
 
         {/* Récapitulatif et validation */}
         <Card>
@@ -869,8 +1042,8 @@ export default function AddOrderForm() {
                       {formData.orderType === "delivery"
                         ? "Livraison"
                         : formData.orderType === "pickup"
-                        ? "À emporter"
-                        : "Sur place"}
+                          ? "À emporter"
+                          : "Sur place"}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -879,8 +1052,8 @@ export default function AddOrderForm() {
                       {formData.paymentMethod === "cash"
                         ? "Espèces"
                         : formData.paymentMethod === "card"
-                        ? "Carte bancaire"
-                        : "Paiement mobile"}
+                          ? "Carte bancaire"
+                          : "Paiement mobile"}
                     </span>
                   </div>
                   <div className="flex justify-between">

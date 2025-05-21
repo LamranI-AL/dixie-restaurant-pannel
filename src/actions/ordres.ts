@@ -57,8 +57,8 @@ export async function addOrder(data: any) {
         (data.orderType === "delivery"
           ? "Livraison"
           : data.orderType === "pickup"
-          ? "À emporter"
-          : "Sur place"),
+            ? "À emporter"
+            : "Sur place"),
       tax: data.tax,
       deliveryFee: data.deliveryFee,
       packagingFee: data.packagingFee,
@@ -336,10 +336,6 @@ export async function deleteOrder(id: string) {
   }
 }
 
-/**
- * Obtient les statistiques des commandes filtrées par statut
- * @param orderStatus Statut de commande à filtrer (optionnel)
- */
 export async function getOrderStatistics(
   orderStatus?: OrderStatus,
 ): Promise<{ success: boolean; statistics?: OrderStatistics; error?: string }> {

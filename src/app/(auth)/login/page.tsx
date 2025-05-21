@@ -237,13 +237,7 @@ export default function Login() {
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex justify-center pb-4">
-          <div className="text-center text-xs text-muted-foreground">
-            <p>Demo credentials (if needed):</p>
-            <p>admin@dixie.ma / dixie@medeclipse</p>
-            <p>admin@dixie.ma / dixie@@123</p>
-          </div>
-        </CardFooter>
+        
       </Card>
     </div>
   );

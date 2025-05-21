@@ -18,11 +18,89 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Dixie - Admin panel",
-  description: "Dixie - Admin panel",
+export const metadata = {
+  title: "Dixie - Admin pannel",
+  description: "admin pannel for dixie",
+  keywords:
+    "poulet frit, livraison poulet, chicken delivery, Dixie, restaurant poulet, burger poulet, grillades poulet, poulet croustillant",
+  // Configuration pour le favicon
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/DixieLogo.png", sizes: "16x16", type: "image/png" },
+      { url: "/DixieLogo.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      {
+        url: "/favicon/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/jpg",
+      },
+    ],
+    other: [
+      {
+        rel: "mask-icon",
+        url: "/favicon/safari-pinned-tab.svg",
+        color: "#FF6B00",
+      },
+    ],
+  },
+  manifest: "/favicon/site.webmanifest",
+  openGraph: {
+    title: "Dixie - Spécialiste du Poulet",
+    description:
+      "Découvrez nos recettes exclusives de poulet frit, grillé et nos délicieux burgers. Livraison rapide à domicile ou à emporter.",
+    type: "website",
+    locale: "fr_FR",
+    url: "https://www.dixie.com",
+    siteName: "Dixie Chicken",
+    images: [
+      {
+        url: "/DixieLogo.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Délicieux plats de poulet Dixie",
+      },
+    ], //
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dixie Chicken & Grill - Le Meilleur Poulet Livré Chez Vous",
+    description:
+      "Spécialiste du poulet frit, grillé et des burgers de poulet. Livraison rapide et fraîcheur garantie.",
+    images: ["/DixieLogo.png"],
+  },
+  alternates: {
+    canonical: "https://www.dixie.ma",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  applicationName: "Dixie admin",
+  publisher: "Dixie alaoui",
+  viewport: "width=device-width, initial-scale=1",
+  colorScheme: "light",
+  creator: "othmane lamrani alaoui",
+  authors: [{ name: "Dixie", url: "https://www.dixie.ma" }],
+  formatDetection: {
+    telephone: true,
+    email: true,
+    address: true,
+  },
+  category: "restaurant",
+  other: {
+    "revisit-after": "7 days",
+    "geo.region": "FR",
+  },
+  themeColor: "#FF6B00",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{

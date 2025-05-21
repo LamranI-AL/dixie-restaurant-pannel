@@ -20,7 +20,65 @@ import {
   serializeFirebaseData,
   serializeFirebaseDocument,
 } from "@/utils/serializeData";
-// export const dynamic = "force-dynamic";// CREATE: Add a new food item
+
+// Fonction utilitaire de sérialisation pour les objets Firebase
+// function serializeFirebaseData(obj) {
+//   if (!obj) return null;
+
+//   // Si c'est une date Firebase/Firestore (avec seconds et nanoseconds)
+//   if (
+//     obj &&
+//     typeof obj === "object" &&
+//     obj.seconds !== undefined &&
+//     obj.nanoseconds !== undefined
+//   ) {
+//     return new Date(obj.seconds * 1000).toISOString();
+//   }
+
+//   // Si c'est un tableau, appliquer la fonction à chaque élément
+//   if (Array.isArray(obj)) {
+//     return obj.map((item) => serializeFirebaseData(item));
+//   }
+
+//   // Si c'est un objet, appliquer la fonction à chaque propriété
+//   if (obj && typeof obj === "object" && obj !== null) {
+//     const newObj = {};
+//     Object.keys(obj).forEach((key) => {
+//       newObj[key] = serializeFirebaseData(obj[key]);
+//     });
+//     return newObj;
+//   }
+
+//   // Sinon, retourner la valeur telle quelle
+//   return obj;
+// }
+
+// Fonction pour sérialiser un document complet
+// function serializeFirebaseDocument(doc) {
+//   if (!doc) return null;
+
+//   // Créer une copie pour éviter de modifier l'original
+//   const serialized = { ...doc };
+
+//   // Sérialiser les propriétés connues de type timestamp
+//   if (serialized.updatedAt) {
+//     serialized.updatedAt = serializeFirebaseData(serialized.updatedAt);
+//   }
+//   if (serialized.createdAt) {
+//     serialized.createdAt = serializeFirebaseData(serialized.createdAt);
+//   }
+
+//   // Parcourir toutes les propriétés et les sérialiser récursivement
+//   Object.keys(serialized).forEach((key) => {
+//     if (typeof serialized[key] === "object" && serialized[key] !== null) {
+//       serialized[key] = serializeFirebaseData(serialized[key]);
+//     }
+//   });
+
+//   return serialized;
+// }
+
+// CREATE: Add a new food item
 export async function addFood(data: Food) {
   const {
     name,
@@ -93,6 +151,7 @@ export async function getAllFoods() {
 }
 
 // READ: Get food items by category ID
+
 export async function getFoodsByCategory(categoryId: string) {
   try {
     const foodRef = collection(db, "products");
@@ -170,7 +229,7 @@ export async function getPopularFoods() {
 // READ: Get top-rated food items
 export async function getTopRatedFoods(limit_count: number = 10) {
   try {
-    const foodRef = collection(db, "foods");
+    const foodRef = collection(db, "products");
     const q = query(foodRef, orderBy("rating", "desc"), limit(limit_count));
     const querySnapshot = await getDocs(q);
 
@@ -227,7 +286,7 @@ export async function toggleFoodAvailability(id: string, isAvailable: boolean) {
 // UPDATE: Add variation to food
 export async function addVariationToFood(id: string, variation: Variation) {
   try {
-    const foodRef = doc(db, "foods", id);
+    const foodRef = doc(db, "products", id);
     const foodSnap = await getDoc(foodRef);
 
     if (!foodSnap.exists()) {

@@ -225,6 +225,8 @@ export interface Coupon {
   usesCount: number;
   isActive: boolean;
   restaurantId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 export interface restaurantGallery {
   category: string;

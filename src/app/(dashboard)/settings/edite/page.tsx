@@ -6,7 +6,7 @@ import React from "react";
 function page() {
   return (
     <div>
-      <RestaurantManagement restaurantId="HafabVKPqsYPMF0rcEfK" />
+      <RestaurantManagement restaurantId="FhnRefHSJQohtFlvilC9" />
     </div>
   );
 }

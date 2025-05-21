@@ -744,3 +744,164 @@ export async function getOrderStatisticsAlt(
     return { success: false, error: (error as Error).message };
   }
 }
+
+// FAVORITES: Get all favorites from all users
+export async function getAllUsersFavorites() {
+  try {
+    const users = await getAllUsers();
+
+    if (!users.success) {
+      return {
+        success: false,
+        error: "Erreur lors de la récupération des utilisateurs",
+      };
+    }
+
+    const allFavorites: any[] = [];
+
+    // Pour chaque utilisateur, récupérer ses favoris
+    for (const user of users.users!) {
+      const userFavorites = await getFavoritesByUser(user.id);
+
+      if (userFavorites.success && userFavorites?.favorites?.length! > 0) {
+        // Ajouter l'ID de l'utilisateur à chaque favori pour référence
+        const favoritesWithUserId = userFavorites.favorites?.map(
+          (favorite) => ({
+            ...favorite,
+            userId: user.id,
+            userName: user.displayName, // Ajouter le nom de l'utilisateur
+          }),
+        );
+
+        allFavorites.push(...(favoritesWithUserId as any));
+      }
+    }
+
+    return { success: true, favorites: allFavorites };
+  } catch (error) {
+    console.error("Erreur lors de la récupération de tous les favoris:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+// FAVORITES: Get favorites for a specific user
+export async function getFavoritesByUser(userId: string) {
+  try {
+    // Référence à la sous-collection 'favorites' de l'utilisateur
+    const favoritesRef = collection(db, "users", userId, "favorites");
+    const q = query(favoritesRef);
+
+    const snapshot = await getDocs(q);
+
+    const favorites: any[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+
+      // Convertir les Timestamps en Date
+      // const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+      // const updatedAt = data.updatedAt ? data.updatedAt.toDate() : null;
+
+      favorites.push({
+        id: doc.id,
+        ...data,
+        // createdAt,
+        // updatedAt,
+      });
+    });
+
+    return { success: true, favorites };
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des favoris de l'utilisateur:",
+      error,
+    );
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+// FAVORITES: Add a food item to user's favorites
+export async function addToFavorites(userId: string, foodItem: any) {
+  try {
+    // Référence à la sous-collection 'favorites' de l'utilisateur
+    const favoritesRef = collection(db, "users", userId, "favorites");
+
+    // Préparer l'objet favori
+    const favorite = {
+      ...foodItem,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // Ajouter le favori à Firestore
+    const docRef = await addDoc(favoritesRef, favorite);
+
+    // Mettre à jour l'ID avec l'ID généré par Firebase
+    const favoriteDoc = doc(db, "users", userId, "favorites", docRef.id);
+    await updateDoc(favoriteDoc, { id: docRef.id });
+
+    return {
+      success: true,
+      favoriteId: docRef.id,
+      message: "Élément ajouté aux favoris avec succès",
+    };
+  } catch (error) {
+    console.error("Erreur lors de l'ajout aux favoris:", error);
+    return {
+      success: false,
+      error: "Une erreur est survenue lors de l'ajout aux favoris",
+    };
+  }
+}
+
+// FAVORITES: Remove a food item from user's favorites
+export async function removeFromFavorites(userId: string, favoriteId: string) {
+  try {
+    const favoriteDoc = doc(db, "users", userId, "favorites", favoriteId);
+    await deleteDoc(favoriteDoc);
+
+    return {
+      success: true,
+      message: "Élément supprimé des favoris avec succès",
+    };
+  } catch (error) {
+    console.error("Erreur lors de la suppression du favori:", error);
+    return {
+      success: false,
+      error: "Une erreur est survenue lors de la suppression du favori",
+    };
+  }
+}
+
+// FAVORITES: Get specific favorite by ID
+export async function getFavoriteById(userId: string, favoriteId: string) {
+  try {
+    // Construire la référence au document
+    const favoriteDoc = doc(db, "users", userId, "favorites", favoriteId);
+
+    // Obtenir le document
+    const snapshot = await getDoc(favoriteDoc);
+
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+
+      // Convertir les Timestamps en Date
+      const createdAt = data.createdAt ? data.createdAt.toDate() : null;
+      const updatedAt = data.updatedAt ? data.updatedAt.toDate() : null;
+
+      return {
+        success: true,
+        favorite: {
+          id: snapshot.id,
+          ...data,
+          createdAt,
+          updatedAt,
+        },
+      };
+    } else {
+      return { success: false, error: "Favori non trouvé" };
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération du favori:", error);
+    return { success: false, error: (error as Error).message };
+  }
+}

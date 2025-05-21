@@ -1,7 +1,8 @@
 /** @format */
 "use client";
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { useLocation } from "wouter";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -17,14 +18,11 @@ import {
   BellRing,
   ChevronDown,
   Truck,
-  PersonStandingIcon,
+  PersonStanding,
   Users,
   UserPlus,
   Store,
   Megaphone,
-  Banknote,
-  ImagePlus,
-  Images,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RestaurantLogo from "@/components/common/RestaurantLogo";
@@ -32,7 +30,7 @@ import Link from "next/link";
 
 interface SidebarItemProps {
   href: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
   hasSubMenu?: boolean;
   isActive?: boolean;
@@ -50,16 +48,21 @@ const SidebarItem = ({
   return (
     <div
       className={cn(
-        "sidebar-item flex items-center px-4 py-2.5 text-sm font-medium cursor-pointer transition-all duration-200 rounded-md mx-2",
+        "sidebar-item flex items-center px-4 py-3 text-sm font-medium cursor-pointer transition-all duration-200 rounded-lg mx-2 my-1",
         isActive
-          ? "active-nav bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md"
-          : "hover:bg-indigo-800/30 text-slate-200 hover:text-white",
+          ? "active-nav bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-900 shadow-lg shadow-amber-500/20"
+          : "hover:bg-slate-800/70 text-slate-300 hover:text-yellow-100",
       )}
       onClick={onClick}>
       <Link
         href={href}
         className="flex items-center w-full">
-        <Icon className="h-5 w-5 mr-3" />
+        <Icon
+          className={cn(
+            "h-5 w-5 mr-3",
+            isActive ? "text-slate-900" : "text-yellow-500",
+          )}
+        />
         {label}
         {hasSubMenu && <ChevronDown className="ml-auto h-4 w-4" />}
       </Link>
@@ -69,12 +72,12 @@ const SidebarItem = ({
 
 interface SidebarSectionProps {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const SidebarSection = ({ title, children }: SidebarSectionProps) => (
   <>
-    <div className="text-xs font-bold text-amber-400 px-4 py-2 mt-3 mb-1 uppercase tracking-wider">
+    <div className="text-xs font-bold text-yellow-500 px-4 py-2 mt-4 mb-2 uppercase tracking-wider">
       {title}
     </div>
     {children}
@@ -92,26 +95,59 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     employees: location.startsWith("/employees"),
   });
 
-  const toggleExpanded = (section: string) => {
+  const toggleExpanded = (section: string): void => {
     setExpanded((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   };
 
+  interface SubMenuItemProps {
+    href: string;
+    icon: LucideIcon;
+    label: string;
+    isActive?: boolean;
+  }
+
+  const SubMenuItem = ({
+    href,
+    icon: Icon,
+    label,
+    isActive = false,
+  }: SubMenuItemProps) => (
+    <div
+      className={cn(
+        "flex items-center pl-12 py-2.5 text-sm cursor-pointer transition-all duration-200 mx-2 rounded-lg",
+        isActive
+          ? "bg-slate-800/80 text-yellow-400"
+          : "text-slate-400 hover:bg-slate-800/50 hover:text-yellow-200",
+      )}>
+      <Link
+        href={href}
+        className="w-full flex items-center">
+        <Icon className="h-4 w-4 mr-2 text-yellow-500/80" />
+        {label}
+      </Link>
+    </div>
+  );
+
   return (
     <aside
       className={cn(
-        "bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 w-64 flex-shrink-0 transition-all duration-300 z-40 h-screen shadow-xl",
+        "bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 w-64 flex-shrink-0 transition-all duration-300 z-40 h-screen shadow-xl border-r border-yellow-900/20",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-64",
         "fixed md:static",
       )}>
-      <div className="flex items-center px-4 py-4 border-b border-indigo-900/40 bg-slate-950">
-        <RestaurantLogo className="w-10 h-10 rounded-md shadow-md bg-gradient-to-r from-amber-500 to-orange-500 p-1" />
-        <h1 className="text-xl font-bold ml-3 text-white">Dixie</h1>
+      <div className="flex items-center px-6 py-5 border-b border-yellow-900/30 bg-slate-950">
+        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 rounded-lg shadow-md p-2 flex items-center justify-center">
+          <RestaurantLogo className="w-8 h-8" />
+        </div>
+        <h1 className="text-xl font-bold ml-3 text-white">
+          <span className="text-yellow-400">Di</span>xie
+        </h1>
       </div>
 
-      <div className="py-3 overflow-y-auto h-[calc(100vh-72px)] custom-scrollbar">
+      <div className="py-3 overflow-y-auto h-[calc(100vh-72px)] custom-scrollbar px-2">
         <SidebarSection title="Navigation Principale">
           <SidebarItem
             href="/dashboard"
@@ -157,25 +193,27 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             onClick={() => toggleExpanded("foods")}
           />
           {expanded.foods && (
-            <>
-              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
-                <Link
-                  href="/foods/add-new"
-                  className="w-full flex items-center">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Ajouter un Plat
-                </Link>
-              </div>
-              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
-                <Link
-                  href="/foods"
-                  className="w-full flex items-center">
-                  <ListOrdered className="h-4 w-4 mr-2" />
-                  Liste des Plats
-                </Link>
-              </div>
-            </>
+            <div className="bg-slate-900/50 py-2 my-1 rounded-lg">
+              <SubMenuItem
+                href="/foods/add-new"
+                icon={PlusCircle}
+                label="Ajouter un Plat"
+                isActive={location === "/foods/add-new"}
+              />
+              <SubMenuItem
+                href="/foods"
+                icon={ListOrdered}
+                label="Liste des Plats"
+                isActive={location === "/foods" && !location.includes("/add")}
+              />
+            </div>
           )}
+          <SidebarItem
+            href="/fav"
+            icon={FolderTree}
+            label="Favorites"
+            isActive={location === "/fav"}
+          />
         </SidebarSection>
         <SidebarSection title="Gestion des Livraisons">
           <SidebarItem
@@ -193,7 +231,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           />
           <SidebarItem
             href="/deliveryman/pending-approval-list"
-            icon={PersonStandingIcon}
+            icon={PersonStanding}
             label="Livreurs à approuver"
             isActive={location === "/pending-approval-list"}
           />
@@ -212,22 +250,6 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             icon={BadgePercent}
             label="Coupons"
             isActive={location.startsWith("/coupons")}
-          />
-        </SidebarSection>
-
-        <SidebarSection title="Gestion des Publicités">
-          <SidebarItem
-            href="/ads/new"
-            icon={ImagePlus}
-            label="Nouvelle Publicité"
-            isActive={location === "/ads/new"}
-          />
-          <SidebarItem
-            href="/ads"
-            icon={Images}
-            label="Liste des Publicités"
-            hasSubMenu
-            isActive={location === "/ads"}
           />
         </SidebarSection>
 
@@ -256,24 +278,22 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             onClick={() => toggleExpanded("employees")}
           />
           {expanded.employees && (
-            <>
-              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
-                <Link
-                  href="/employees/add"
-                  className="w-full flex items-center">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Ajouter un Employé
-                </Link>
-              </div>
-              <div className="flex items-center pl-12 py-2.5 text-sm text-slate-300 hover:bg-indigo-800/20 hover:text-white cursor-pointer transition-all duration-200 mx-2 rounded-md">
-                <Link
-                  href="/employees"
-                  className="w-full flex items-center">
-                  <ListOrdered className="h-4 w-4 mr-2" />
-                  Liste des Employés
-                </Link>
-              </div>
-            </>
+            <div className="bg-slate-900/50 py-2 my-1 rounded-lg">
+              <SubMenuItem
+                href="/employees/add"
+                icon={UserPlus}
+                label="Ajouter un Employé"
+                isActive={location === "/employees/add"}
+              />
+              <SubMenuItem
+                href="/employees"
+                icon={ListOrdered}
+                label="Liste des Employés"
+                isActive={
+                  location === "/employees" && !location.includes("/add")
+                }
+              />
+            </div>
           )}
         </SidebarSection>
       </div>
@@ -283,17 +303,17 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         jsx
         global>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
+          width: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: #0f172a;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #4338ca;
-          border-radius: 5px;
+          background: #eab308;
+          border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #4f46e5;
+          background: #f59e0b;
         }
       `}</style>
     </aside>

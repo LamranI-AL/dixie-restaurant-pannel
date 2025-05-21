@@ -40,7 +40,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
@@ -758,7 +757,7 @@ export function RestaurantManagement({
                                 />
                               </div>
                             ) : (
-                              <div className="bg-white rounded-md p-4 border border-gray-200">
+                              <div className="bg-gradient-to-b from-orange-950 border-t-yellow-800 rounded-md p-4 border border-gray-200">
                                 <UploadButton
                                   endpoint="imageUploader"
                                   onClientUploadComplete={(res) => {
@@ -1053,8 +1052,8 @@ export function RestaurantManagement({
                               {option.type === "delivery"
                                 ? "Livraison des commandes au domicile des clients"
                                 : option.type === "pickup"
-                                ? "Les clients viennent chercher leurs commandes"
-                                : "Service à table dans votre établissement"}
+                                  ? "Les clients viennent chercher leurs commandes"
+                                  : "Service à table dans votre établissement"}
                             </p>
 
                             {option.available && (
