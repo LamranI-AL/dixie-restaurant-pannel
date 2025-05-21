@@ -30,7 +30,7 @@ interface HeaderProps {
   toggleSidebar?: () => void;
 }
 
-export default function Header({ toggleSidebar }: HeaderProps): JSX.Element {
+export default function Header({ toggleSidebar }: HeaderProps) {
   const { currentUser, logout } = useAuth();
   const [notifications, setNotifications] = useState<number>(0);
 
@@ -71,7 +71,7 @@ export default function Header({ toggleSidebar }: HeaderProps): JSX.Element {
         <div className="relative">
           <Button
             variant="outline"
-            size="sm"
+              size="sm"
             className="h-8 text-sm font-medium px-3 py-1.5 rounded-md flex items-center border-slate-700 bg-slate-800/40 text-slate-200 hover:bg-slate-800 hover:text-yellow-400 hover:border-yellow-500/50">
             <Languages className="h-4 w-4 mr-1.5" />
             <span>FR</span>
