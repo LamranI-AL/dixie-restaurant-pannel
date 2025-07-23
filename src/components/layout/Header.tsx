@@ -12,17 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Menu,
-  Search,
-  Inbox,
-  ShoppingCart,
-  LogOut,
-  User,
-  Settings,
-  Languages,
-  Bell,
-} from "lucide-react";
+import { Menu, Search, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import type { MouseEvent } from "react";
 
@@ -32,7 +22,6 @@ interface HeaderProps {
 
 export default function Header({ toggleSidebar }: HeaderProps) {
   const { currentUser, logout } = useAuth();
-  const [notifications, setNotifications] = useState<number>(0);
 
   const handleLogout = async (e: MouseEvent<HTMLDivElement>): Promise<void> => {
     try {
@@ -66,62 +55,13 @@ export default function Header({ toggleSidebar }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center space-x-3">
-        {/* <div className="relative">
-          <Button
-            variant="outline"
-              size="sm"
-            className="h-8 text-sm font-medium px-3 py-1.5 rounded-md flex items-center border-slate-700 bg-slate-800/40 text-slate-200 hover:bg-slate-800 hover:text-yellow-400 hover:border-yellow-500/50">
-            <Languages className="h-4 w-4 mr-1.5" />
-            <span>FR</span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="ml-1 text-yellow-500">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </Button>
-        </div> */}
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-slate-300 hover:bg-slate-800 hover:text-yellow-400 relative">
-          <Inbox className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">
-            0
-          </span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-slate-300 hover:bg-slate-800 hover:text-yellow-400 relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">
-            {notifications}
-          </span>
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-slate-300 hover:bg-slate-800 hover:text-yellow-400">
-          <ShoppingCart className="h-5 w-5" />
-        </Button>
-
+      <div className="flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center space-x-3 cursor-pointer p-1 rounded-full hover:bg-slate-800/70 transition-colors">
-              <div className="flex flex-col items-end text-right hidden sm:block">
-                <span className="text-sm  font-medium text-slate-200">
-                  {currentUser?.displayName || "User"} ! Email :
+              <div className=" flex-col items-end text-right hidden sm:block">
+                <span className="text-sm font-medium text-slate-200">
+                  {currentUser?.displayName || "User"}
                 </span>
                 <span className="text-xs text-yellow-500/90">
                   {currentUser?.email}
@@ -138,18 +78,18 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           <DropdownMenuContent
             align="end"
             className="w-60 bg-slate-900 border border-slate-800 text-slate-200 shadow-xl shadow-black/20 rounded-lg overflow-hidden p-1">
-            <DropdownMenuLabel className="text-yellow-500 font-semibold px-3 py-2">
+            {/* <DropdownMenuLabel className="text-yellow-500 font-semibold px-3 py-2">
               Mon Compte
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-700" />
-            <DropdownMenuItem className="hover:bg-slate-800 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-yellow-400 focus:bg-slate-800 hover:text-yellow-400">
+            <DropdownMenuSeparator className="bg-slate-700" /> */}
+            {/* <DropdownMenuItem className="hover:bg-slate-800 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-yellow-400 focus:bg-slate-800 hover:text-yellow-400">
               <User className="mr-2 h-4 w-4 text-yellow-500" />
               <span>Profile</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="hover:bg-slate-800 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-yellow-400 focus:bg-slate-800 hover:text-yellow-400">
               <Settings className="mr-2 h-4 w-4 text-yellow-500" />
               <span>Paramètres</span>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem
               onClick={handleLogout}
