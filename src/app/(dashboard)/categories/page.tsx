@@ -17,9 +17,6 @@ import { Loader2, Search } from "lucide-react";
 import { Cuisine } from "@/lib/types";
 import { useAuth } from "@/providers/auth-provider";
 import Image from "next/image";
-// import { getAllCuisines } from "@/actions/cuisine";
-// import { EditCuisineForm } from "@/components/dashboard/cuisines/EditCuisineForm";
-// import { DeleteCuisineConfirmation } from "@/components/dashboard/cuisines/DeleteCuisineForm";
 import { toast, Toaster } from "sonner";
 import {
   Popover,
@@ -29,48 +26,45 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-// import { addCuisine } from "@/actions/cuisine";
 import { UploadButton } from "@/utils/uploadthing";
-import { addCategory, getAllCategories } from "@/actions/category";
 import { EditCategoryForm } from "@/components/dashboard/categories/EditeCategoryForm";
 import { DeleteCategoryConfirmation } from "@/components/dashboard/categories/DeleteCategorieForm";
+import { useCategories } from "@/lib/hooks/useCategories"; // Import du hook
 
 export default function CuisinesPage() {
   const [recherche, setRecherche] = useState("");
   const { currentUser } = useAuth();
-  const [cuisines, setCuisines] = useState<Cuisine[]>([]);
-  const [chargement, setChargement] = useState(true);
-  const [chargementFormulaire, setChargementFormulaire] = useState(false);
   const [popoverOuvert, setPopoverOuvert] = useState(false);
+
+  // Utilisation du hook useCategories
+  const {
+    categories,
+    loading: chargement,
+    error,
+    addCategory,
+    getAllCategories,
+    clearError,
+  } = useCategories();
 
   // État du formulaire de nouvelle cuisine
   const [nomCuisine, setNomCuisine] = useState("");
   const [descriptionCuisine, setDescriptionCuisine] = useState("");
   const [imageCuisine, setImageCuisine] = useState("");
   const [telechargementImage, setTelechargementImage] = useState(false);
+  const [chargementFormulaire, setChargementFormulaire] = useState(false);
 
-  // Récupérer les cuisines
-  const recupererCuisines = async () => {
-    setChargement(true);
-    try {
-      const { success, categories } = await getAllCategories();
-      if (success) {
-        setCuisines(categories as Cuisine[]);
-        toast.success("Cuisines chargées avec succès");
-      } else {
-        toast.error("Erreur lors de la récupération des cuisines");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des cuisines :", error);
-      toast.error("Échec du chargement des cuisines");
-    } finally {
-      setChargement(false);
-    }
-  };
-
+  // Récupérer les cuisines au montage du composant
   useEffect(() => {
-    recupererCuisines();
-  }, []);
+    getAllCategories();
+  }, [getAllCategories]);
+
+  // Gestion des erreurs du hook
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   // Gérer l'ajout d'une nouvelle cuisine
   const handleAjouterCuisine = async (e: React.FormEvent) => {
@@ -94,7 +88,7 @@ export default function CuisinesPage() {
         userId: (await currentUser?.getIdToken()) || "",
         id: "",
         name: nomCuisine,
-        description: "test",
+        description: descriptionCuisine || "test",
         longDescription: "testmock",
         image: imageCuisine,
       });
@@ -107,8 +101,7 @@ export default function CuisinesPage() {
         setImageCuisine("");
         // Fermer le popover
         setPopoverOuvert(false);
-        // Actualiser les cuisines
-        recupererCuisines();
+        // Pas besoin de recharger manuellement, le hook gère la mise à jour automatique
       } else {
         toast.error(result.error || "Échec de l'ajout de la cuisine");
       }
@@ -121,7 +114,7 @@ export default function CuisinesPage() {
   };
 
   // Filtrer les cuisines en fonction de la recherche
-  const cuisinesFiltrees = cuisines.filter((cuisine) =>
+  const cuisinesFiltrees = categories.filter((cuisine) =>
     cuisine.name.toLowerCase().includes(recherche.toLowerCase()),
   );
 
@@ -334,7 +327,7 @@ export default function CuisinesPage() {
                   </TableRow>
                 ) : (
                   cuisinesFiltrees.map((cuisine, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={cuisine.id || index}>
                       <TableCell className="text-center">{index + 1}</TableCell>
                       <TableCell>
                         <div className="h-12 w-12 rounded-md overflow-hidden">

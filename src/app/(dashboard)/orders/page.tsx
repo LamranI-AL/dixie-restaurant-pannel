@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -14,361 +14,373 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Printer, Eye, Download } from "lucide-react";
-import { Order, OrderStatus, User } from "@/lib/types";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import Link from "next/link";
-import { getAllOrders } from "@/actions/ordres";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Search, Package, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Order, OrderStatus } from "@/lib/types";
+import { useUsers } from "@/lib/hooks/useUserOrders";
 import { formatDate } from "@/utils/format-date";
-import AddOrderForm from "@/components/command/OrderForm";
-import { getAllUsersOrders, getUserByUid } from "@/actions/user";
-import OrderUserComponent from "@/components/command/orderUserComponent";
 
-const getStatusColor = (status: OrderStatus): string => {
-  const statusColors: Record<OrderStatus, string> = {
-    pending: "bg-blue-100 text-blue-600",
-    confirmed: "bg-green-100 text-green-600",
-    accepted: "bg-green-100 text-green-600",
-    cooking: "bg-amber-100 text-amber-600",
-    "ready-for-delivery": "bg-purple-100 text-purple-600",
-    "on-the-way": "bg-pink-100 text-pink-600",
-    delivered: "bg-emerald-100 text-emerald-600",
-    "dine-in": "bg-indigo-100 text-indigo-600",
-    refunded: "bg-red-100 text-red-600",
-    "refund-requested": "bg-red-100 text-red-600",
-    scheduled: "bg-cyan-100 text-cyan-600",
-    "payment-failed": "bg-red-100 text-red-600",
-    canceled: "bg-gray-100 text-gray-600",
+// --- Modales ---
+import { AddOrderModal } from "@/components/dashboard/orders/addOrderModal";
+import { ViewOrderModal } from "@/components/dashboard/orders/viewOrderModal";
+import { EditOrderModal } from "@/components/dashboard/orders/editOrderModal";
+import { DeleteOrderModal } from "@/components/dashboard/orders/deleteOrder";
+
+// --- Fonctions d'aide pour les couleurs des badges ---
+const getOrderStatusStyle = (status?: OrderStatus) => {
+  const styles: Record<string, { text: string; style: string }> = {
+    pending: { text: "En attente", style: "bg-blue-100 text-blue-800" },
+    delivered: { text: "Terminée", style: "bg-cyan-100 text-cyan-800" },
+    canceled: { text: "Annulée", style: "bg-gray-100 text-gray-800" },
+    "in-progress": {
+      text: "En préparation",
+      style: "bg-orange-100 text-orange-800",
+    },
   };
-
-  return statusColors[status] || "bg-gray-100 text-gray-600";
+  const statusKey = status || "pending";
+  return (
+    styles[statusKey] || { text: "Inconnu", style: "bg-gray-100 text-gray-800" }
+  );
 };
 
-const getPaymentStatusColor = (
-  status: "paid" | "unpaid" | "refunded",
-): string => {
-  const statusColors = {
-    paid: "text-green-600",
-    unpaid: "text-red-500",
-    refunded: "text-amber-600",
+const getPaymentStatusStyle = (status?: "paid" | "unpaid" | "refunded") => {
+  const styles: Record<string, { text: string; style: string }> = {
+    paid: { text: "Payée", style: "text-green-600 font-medium" },
+    unpaid: { text: "Non Payée", style: "text-red-600 font-medium" },
+    refunded: { text: "Remboursée", style: "text-amber-600 font-medium" },
   };
-
-  return statusColors[status] || "text-gray-600";
+  const statusKey = status || "unpaid";
+  return (
+    styles[statusKey] || { text: "Inconnu", style: "text-gray-600 font-medium" }
+  );
 };
 
+// ============================================================================
+// COMPOSANT PRINCIPAL OPTIMISÉ
+// ============================================================================
 export default function OrdersPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [orders, setOrders] = useState<Order[]>([]);
-  // const [userOrder, setUserOrder] = useState<User>();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<string>("all");
 
-  const exportData = () => {
-    // Implement your export logic here
-    const doc = new jsPDF();
+  // Hook useUsers - on utilise seulement ce dont on a besoin
+  const { orders, loading, error, getAllUsersOrders, clearError } = useUsers();
 
-    autoTable(doc, {
-      html: "#orders-table",
-      styles: { fontSize: 10 },
-      theme: "grid",
-      headStyles: { fillColor: [22, 160, 133] },
-    });
-
-    doc.save("Orders.pdf");
-  };
-  const generateOrderTicketPDF = (order: Order) => {
-    const doc = new jsPDF();
-
-    // Title
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Bon de Commande", 105, 15, { align: "center" });
-
-    // Client Info
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    const leftStart = 14;
-    let y = 30;
-    doc.text(`Commande N° : ${order.orderNumber}`, leftStart, y);
-    doc.text(
-      `Date : ${new Date(order.orderDate).toLocaleString()}`,
-      leftStart,
-      (y += 6),
-    );
-    // doc.text(`Client : ${order.customerName}`, leftStart, (y += 6));
-    // doc.text(`Téléphone : ${order.customerPhone}`, leftStart, (y += 6));
-    // doc.text(`Email : ${order.customerEmail}`, leftStart, (y += 6));
-    // doc.text(`Adresse : ${order.customerAddress}`, leftStart, (y += 6));
-
-    // Items Table
-    autoTable(doc, {
-      startY: y + 10,
-      head: [["Produit", "Quantité", "Prix Unitaire", "Total"]],
-      body: order.items.map((item) => [
-        item.name,
-        item.quantity.toString(),
-        `${item.price && item.price?.toFixed(2)} MAD`,
-        `${item.price && (item.price * item.quantity).toFixed(2)} MAD`,
-      ]),
-      styles: { halign: "center" },
-      headStyles: { fillColor: [0, 150, 136] },
-    });
-
-    // Totals & Payment Info
-    const finalY = (doc as any).lastAutoTable?.finalY || 90;
-    const rightX = 140;
-    const lineSpacing = 6;
-    let lineY = finalY + 10;
-
-    doc.text(
-      `Sous-total : ${order.subtotal ? order.subtotal.toFixed(2) : "0 "} MAD`,
-      rightX,
-      lineY,
-    );
-    doc.text(
-      `TVA : ${order.tax ? order.tax.toFixed(2) : "0"} MAD`,
-      rightX,
-      (lineY += lineSpacing),
-    );
-    doc.text(
-      `Livraison : ${
-        order.deliveryFee ? order.deliveryFee.toFixed(2) : "0"
-      } MAD`,
-      rightX,
-      (lineY += lineSpacing),
-    );
-    doc.text(
-      `Emballage : ${
-        order.packagingFee ? order.packagingFee.toFixed(2) : "0"
-      } MAD`,
-      rightX,
-      (lineY += lineSpacing),
-    );
-    doc.text(
-      `Remise : ${order.discount ? order.discount.toFixed(2) : "0"} MAD`,
-      rightX,
-      (lineY += lineSpacing),
-    );
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `Total : ${order.total ? order.total.toFixed(2) : "0"} MAD`,
-      rightX,
-      (lineY += lineSpacing),
-    );
-    doc.setFont("helvetica", "normal");
-
-    // Payment Info
-    lineY += 12;
-    doc.text(`Statut de paiement : ${order.paymentStatus}`, leftStart, lineY);
-    doc.text(
-      `Méthode : ${order.paymentMethod}`,
-      leftStart,
-      (lineY += lineSpacing),
-    );
-    doc.text(
-      `Statut commande : ${order.orderStatus}`,
-      leftStart,
-      (lineY += lineSpacing),
-    );
-
-    // Save
-    doc.save(`commande-${order.orderNumber}.pdf`);
-  };
+  // Chargement initial optimisé - UNE SEULE FOIS
   useEffect(() => {
-    const fetchFoods = async () => {
-      const { success, orders } = await getAllUsersOrders();
-      console.log(orders);
-      console.log(success);
-      if (success) {
-        setOrders(orders as Order[]);
-      } else {
-        console.error("Error fetching categories");
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        if (isMounted && orders.length === 0) {
+          await getAllUsersOrders();
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Erreur de chargement:", err);
+        }
       }
     };
-    // const getUserOrder = async (userId: string) => {
-    //   const { success, user } = await getUserByUid(userId);
-    //   console.log(user);
-    //   if (success) {
-    //     setUserOrder(user as User);
-    //   } else {
-    //     console.error("Error fetching user");
-    //   }
-    // };
-    fetchFoods();
-  }, []);
-  return (
-    <div className="space-y-4">
-      <AddOrderForm />
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6">
-            <circle
-              cx="8"
-              cy="21"
-              r="1"
-            />
-            <circle
-              cx="19"
-              cy="21"
-              r="1"
-            />
-            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-          </svg>
-          <h2 className="text-2xl font-bold">All Orders</h2>
-          <div className="ml-2 flex h-7 items-center justify-center rounded-full bg-blue-100 px-3 text-xs font-medium text-blue-500">
-            {orders.length} Orders
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Dépendances vides - chargement unique
+
+  // Gestion des erreurs
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  // Filtrage et tri optimisés avec memo
+  const filteredOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
+
+    let filtered = orders;
+
+    // Filtre par onglet
+    if (activeTab !== "all") {
+      filtered = filtered.filter(
+        (order) =>
+          order.orderStatus === activeTab || order.status === activeTab,
+      );
+    }
+
+    // Filtre par recherche
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (order: any) =>
+          order.orderNumber?.toLowerCase().includes(searchLower) ||
+          order.customerPhone?.toLowerCase().includes(searchLower) ||
+          order.customerName?.toLowerCase().includes(searchLower),
+      );
+    }
+
+    // Tri par date (plus récent en premier)
+    return filtered.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [orders, searchTerm, activeTab]);
+
+  // Statistiques optimisées
+  const orderStats = useMemo(() => {
+    if (!orders || orders.length === 0) {
+      return { all: 0 };
+    }
+
+    return orders.reduce(
+      (acc, order) => {
+        acc.all = (acc.all || 0) + 1;
+        const status = order.orderStatus || order.status || "pending";
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+  }, [orders]);
+
+  // Callback optimisé pour les modales
+  const handleOrderSuccess = () => {
+    // Rechargement simple après action
+    getAllUsersOrders();
+  };
+
+  // ============================================================================
+  // AFFICHAGE LOADER PRINCIPAL
+  // ============================================================================
+  if (loading && (!orders || orders.length === 0)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-6 p-8">
+          {/* Loader principal */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Ex : Search by Order Id"
-              className="w-[240px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
           </div>
 
-          <Button
-            variant="outline"
-            size="icon">
-            <Search className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={exportData}
-            variant="outline"
-            className="gap-1 items-center">
-            <Download className="h-4 w-4 mr-1" />
-            Export
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="ml-1 h-4 w-4">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 15 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4">
-              <path
-                d="M5 2V1H10V2H5Z"
-                fill="currentColor"
+          {/* Messages de chargement */}
+          <div className="text-center space-y-2 max-w-md">
+            <h2 className="text-2xl font-semibold text-foreground">
+              Chargement des commandes
+            </h2>
+            <p className="text-muted-foreground">
+              Récupération de vos données en cours...
+            </p>
+            <div className="mt-4 flex items-center justify-center space-x-1">
+              <div
+                className="h-2 w-2 bg-primary rounded-full animate-bounce"
+                style={{ animationDelay: "0ms" }}
               />
-              <path
-                d="M1 13.25C1 13.6642 1.33579 14 1.75 14H13.25C13.6642 14 14 13.6642 14 13.25V5H1V13.25Z"
-                fill="currentColor"
+              <div
+                className="h-2 w-2 bg-primary rounded-full animate-bounce"
+                style={{ animationDelay: "150ms" }}
               />
-              <path
-                d="M14 3.5C14 3.22386 13.7761 3 13.5 3H1.5C1.22386 3 1 3.22386 1 3.5V4.5C1 4.77614 1.22386 5 1.5 5H13.5C13.7761 5 14 4.77614 14 4.5V3.5Z"
-                fill="currentColor"
+              <div
+                className="h-2 w-2 bg-primary rounded-full animate-bounce"
+                style={{ animationDelay: "300ms" }}
               />
-            </svg>
-          </Button>
+            </div>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <Card className="border border-gray-200">
+  // ============================================================================
+  // AFFICHAGE ERREUR
+  // ============================================================================
+  if (error && (!orders || orders.length === 0)) {
+    return (
+      <div className="container mx-auto py-10">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle>Erreur de chargement</AlertTitle>
+          <AlertDescription>
+            Impossible de charger les commandes: {error}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // AFFICHAGE PRINCIPAL
+  // ============================================================================
+  return (
+    <div className="container mx-auto py-6 space-y-6">
+      {/* En-tête */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Gestion des Commandes
+          </h1>
+          <p className="text-muted-foreground">
+            {orders.length} commande{orders.length > 1 ? "s" : ""} au total
+          </p>
+        </div>
+        <AddOrderModal onSuccess={handleOrderSuccess} />
+      </div>
+
+      {/* Filtres et recherche */}
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          {/* Barre de recherche */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher par numéro, téléphone, nom du client..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
+
+          {/* Onglets de filtres */}
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+              <TabsTrigger value="all">
+                Toutes ({orderStats.all || 0})
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                En attente ({orderStats.pending || 0})
+              </TabsTrigger>
+              <TabsTrigger value="in-progress">En préparation(..)</TabsTrigger>
+              <TabsTrigger value="delivered">
+                Terminées ({orderStats.delivered || 0})
+              </TabsTrigger>
+              <TabsTrigger value="canceled">
+                Annulées ({orderStats.canceled || 0})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Tableau des commandes */}
+      <Card>
         <CardContent className="p-0">
-          <Table id="orders-table">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-12 text-center">SI</TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Order date</TableHead>
-                <TableHead>Customer Information</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Order Status</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order, index) => (
-                <TableRow key={order.id}>
-                  <TableCell className="text-center">{index + 1}</TableCell>
-                  <TableCell>{order.orderNumber}</TableCell>
-                  <TableCell>{formatDate(new Date(order.createdAt))}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        <OrderUserComponent userId={order.userId} />
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {order.userId}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">
-                      {/* $ {order.total ? order.total.toFixed(2) : "0.00"} */}
-                    </div>
-                    <div
-                      className={`text-xs ${getPaymentStatusColor(
-                        order.paymentStatus,
-                      )}`}>
-                      {order.paymentStatus
-                        ? order.paymentStatus.charAt(0).toUpperCase() +
-                          order.paymentStatus.slice(1)
-                        : "en cours"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${getStatusColor(
-                        order.orderStatus,
-                      )}`}>
-                      {order.orderStatus === "delivered"
-                        ? "Delivered"
-                        : "Pending"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center gap-1">
-                      <Link href={`/orders/details/${order.id}`}>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-9 w-9">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        onClick={() => generateOrderTicketPDF(order)}
-                        size="icon"
-                        className="h-9 w-9">
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Paiement</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => (
+                    <OrderRow
+                      key={order.id}
+                      order={order}
+                      onSuccess={handleOrderSuccess}
+                    />
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="h-32 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <Package className="h-12 w-12 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">Aucune commande trouvée</p>
+                          <p className="text-sm text-muted-foreground">
+                            {searchTerm || activeTab !== "all"
+                              ? "Essayez de modifier vos filtres de recherche"
+                              : "Commencez par créer votre première commande"}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ============================================================================
+// COMPOSANT LIGNE DE COMMANDE OPTIMISÉ
+// ============================================================================
+function OrderRow({ order, onSuccess }: { order: any; onSuccess: () => void }) {
+  const orderStatus = getOrderStatusStyle(order.orderStatus || order.status);
+  const paymentStatus = getPaymentStatusStyle(order.paymentStatus);
+
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="text-sm font-medium">
+          {/* #{order.orderNumber || order.id?.slice(-8)} */}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {order.createdAt ? formatDate(new Date(order.createdAt)) : "N/A"}
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <div className="font-medium">
+          {order.customerName || order.userName || "Client"}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {order.customerPhone}
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <div className="font-bold text-lg">
+          {order.total?.toFixed(2) || "0.00"} MAD
+        </div>
+      </TableCell>
+
+      <TableCell>
+        <span className={paymentStatus.style}>{paymentStatus.text}</span>
+      </TableCell>
+
+      <TableCell>
+        <Badge
+          variant="outline"
+          className={`${orderStatus.style} border-0`}>
+          {orderStatus.text}
+        </Badge>
+      </TableCell>
+
+      <TableCell>
+        <div className="flex items-center justify-end gap-1">
+          <ViewOrderModal orderId={order.id} />
+          <EditOrderModal
+            orderId={order.id}
+            onSuccess={onSuccess}
+          />
+          <DeleteOrderModal
+            orderId={order.id}
+            orderNumber={order.orderNumber || order.id}
+            customerName={order.customerName || order.userName}
+            total={order.total}
+            onSuccess={onSuccess}
+          />
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }

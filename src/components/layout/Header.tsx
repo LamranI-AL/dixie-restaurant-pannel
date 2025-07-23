@@ -24,7 +24,7 @@ import {
   Bell,
 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
-import type { MouseEvent } from 'react';
+import type { MouseEvent } from "react";
 
 interface HeaderProps {
   toggleSidebar?: () => void;
@@ -50,8 +50,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="text-slate-200 hover:bg-slate-800 hover:text-yellow-400"
-        >
+          className="text-slate-200 hover:bg-slate-800 hover:text-yellow-400">
           <Menu className="h-6 w-6" />
         </Button>
       </div>
@@ -68,7 +67,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
       </div>
 
       <div className="flex items-center space-x-3">
-        <div className="relative">
+        {/* <div className="relative">
           <Button
             variant="outline"
               size="sm"
@@ -88,14 +87,16 @@ export default function Header({ toggleSidebar }: HeaderProps) {
               <path d="m6 9 6 6 6-6" />
             </svg>
           </Button>
-        </div>
+        </div> */}
 
         <Button
           variant="ghost"
           size="icon"
           className="rounded-full text-slate-300 hover:bg-slate-800 hover:text-yellow-400 relative">
           <Inbox className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">0</span>
+          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">
+            0
+          </span>
         </Button>
 
         <Button
@@ -103,7 +104,9 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           size="icon"
           className="rounded-full text-slate-300 hover:bg-slate-800 hover:text-yellow-400 relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">{notifications}</span>
+          <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full text-xs w-4 h-4 flex items-center justify-center font-semibold">
+            {notifications}
+          </span>
         </Button>
 
         <Button
@@ -118,7 +121,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
             <div className="flex items-center space-x-3 cursor-pointer p-1 rounded-full hover:bg-slate-800/70 transition-colors">
               <div className="flex flex-col items-end text-right hidden sm:block">
                 <span className="text-sm  font-medium text-slate-200">
-                  {currentUser?.displayName || "User"} ! Email : 
+                  {currentUser?.displayName || "User"} ! Email :
                 </span>
                 <span className="text-xs text-yellow-500/90">
                   {currentUser?.email}
@@ -135,7 +138,9 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           <DropdownMenuContent
             align="end"
             className="w-60 bg-slate-900 border border-slate-800 text-slate-200 shadow-xl shadow-black/20 rounded-lg overflow-hidden p-1">
-            <DropdownMenuLabel className="text-yellow-500 font-semibold px-3 py-2">Mon Compte</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-yellow-500 font-semibold px-3 py-2">
+              Mon Compte
+            </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-700" />
             <DropdownMenuItem className="hover:bg-slate-800 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-yellow-400 focus:bg-slate-800 hover:text-yellow-400">
               <User className="mr-2 h-4 w-4 text-yellow-500" />
@@ -146,10 +151,9 @@ export default function Header({ toggleSidebar }: HeaderProps) {
               <span>Paramètres</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-700" />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={handleLogout}
-              className="hover:bg-red-900/30 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-red-400 focus:bg-red-900/20 hover:text-red-400"
-            >
+              className="hover:bg-red-900/30 cursor-pointer rounded-md px-3 py-2 text-slate-300 focus:text-red-400 focus:bg-red-900/20 hover:text-red-400">
               <LogOut className="mr-2 h-4 w-4 text-red-400" />
               <span>Déconnexion</span>
             </DropdownMenuItem>

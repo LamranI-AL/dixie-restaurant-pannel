@@ -1,517 +1,989 @@
 /** @format */
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
 } from "recharts";
-import { Button } from "@/components/ui/button";
 import {
-  ShoppingBag,
-  Truck,
+  Users,
+  ShoppingCart,
+  TrendingUp,
+  DollarSign,
   Package,
-  Calendar,
-  RotateCcw,
-  Pizza,
-  UserCheck,
-  CookingPot,
-  AreaChart as ChartIcon,
+  Truck,
   Clock,
-  PackageCheck,
   CheckCircle,
   XCircle,
-  Loader2,
+  AlertTriangle,
+  Calendar,
+  Filter,
+  RefreshCw,
+  Pizza,
+  User,
+  MapPin,
+  Activity,
+  BarChart3,
+  PieChart as PieChartIcon,
+  TrendingDown,
 } from "lucide-react";
-import { YearlySales, TrendingFood, Order, User } from "@/lib/types";
-import Image from "next/image";
-// import { getOrderStatistics } from "@/actions/ordres";
-import { getPopularFoods } from "@/actions/food";
-import GalleryPage from "@/components/dashboard/gallery/pageUpGall";
-import { useOrders } from "@/lib/hooks/hooks/useOrders";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
-import { getOrderStatistics, getOrderStatisticsAlt } from "@/actions/user";
-import {
-  calculateOrderStats,
-  fetchOrdersFromFirebase,
-} from "@/actions/chart-stats";
-import OrdersAnalyticsChart from "@/components/dashboard/chart-stats";
+import { toast } from "sonner";
+import { useUsers } from "@/lib/hooks/useUserOrders";
+import { useFoods } from "@/lib/hooks/useFoods";
+import { useDeliverymen } from "@/lib/hooks/useDeliverymen";
+import { formatDate } from "@/utils/format-date";
 
-// Type pour les statistiques de commandes
-interface OrderStats {
-  pending: number;
-  processing: number;
-  delivered: number;
-  cancelled: number;
-  total: number;
-}
+// Couleurs pour les graphiques
+const CHART_COLORS = {
+  primary: "#3b82f6",
+  secondary: "#10b981",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  info: "#06b6d4",
+  purple: "#8b5cf6",
+  pink: "#ec4899",
+  gray: "#6b7280",
+};
 
-// Couleurs pour le graphique en secteurs
-const COLORS = ["#ffa726", "#42a5f5", "#66bb6a", "#ef5350"];
+const PIE_COLORS = [
+  CHART_COLORS.primary,
+  CHART_COLORS.secondary,
+  CHART_COLORS.warning,
+  CHART_COLORS.danger,
+  CHART_COLORS.info,
+  CHART_COLORS.purple,
+];
 
-export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isChartLoading, setIsChartLoading] = useState(true);
-  const [popFoods, setPopFoods] = useState<TrendingFood[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("all");
-  // const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const { toast } = useToast();
-  const [orderStats, setOrderStats] = useState<any>({
-    totalRevenue: 0,
-    averageOrderValue: 0,
-    totalOrders: 0,
-  });
-  // Charger les statistiques pour le dashboard
+// Types pour les filtres
+type DateFilter = "today" | "week" | "month" | "quarter" | "year" | "all";
+type MetricType = "Orders" | "Revenue" | "Cients" | "Plats";
+
+export default function ProfessionalDashboard() {
+  const [dateFilter, setDateFilter] = useState<DateFilter>("week");
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("Orders");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Hooks pour récupérer les données
+  const {
+    users,
+    orders,
+    loading: usersLoading,
+    error: usersError,
+    getAllUsers,
+    getAllUsersOrders,
+    clearError: clearUsersError,
+  } = useUsers();
+
+  const {
+    foods,
+    trendingFoods,
+    loading: foodsLoading,
+    error: foodsError,
+    getAllFoods,
+    getPopularFoods,
+    clearError: clearFoodsError,
+  } = useFoods();
+
+  const {
+    deliverymen,
+    loading: deliveryLoading,
+    error: deliveryError,
+    getAllDeliverymen,
+    clearError: clearDeliveryError,
+  } = useDeliverymen();
+
+  // État de chargement global
+  const isLoading = usersLoading || foodsLoading || deliveryLoading;
+
+  // Chargement initial des données
   useEffect(() => {
-    const loadDashboardData = async (): Promise<void> => {
-      setIsLoading(true);
+    const loadDashboardData = async () => {
       try {
-        // Récupérer les commandes des 30 derniers jours pour les statistiques
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        // Si selectedUserId est "all", on récupère toutes les commandes, sinon on filtre par utilisateur
-        const userId = selectedUserId !== "all" ? selectedUserId : undefined;
-
-        const ordersData = await fetchOrdersFromFirebase({
-          startDate: thirtyDaysAgo,
-          userId: userId,
-        });
-
-        setOrders(ordersData as any);
-
-        // Calculer les statistiques
-        const stats = calculateOrderStats(ordersData);
-        setOrderStats(stats);
+        await Promise.all([
+          getAllUsers(),
+          getAllUsersOrders(),
+          getAllFoods(),
+          getPopularFoods(),
+          getAllDeliverymen(),
+        ]);
       } catch (error) {
-        console.error(
-          "Erreur lors du chargement des données du dashboard:",
-          error,
-        );
-      } finally {
-        setIsLoading(false);
+        console.error("Erreur lors du chargement du dashboard:", error);
       }
     };
 
     loadDashboardData();
-  }, [selectedUserId]);
+  }, []);
 
-  // Préparer les données pour le graphique en secteurs des commandes
-  const getOrderChartData = () => {
-    if (!orderStats) return [];
-
-    return [
-      { name: "En traitement", value: orderStats.pending, color: COLORS[0] },
-      { name: "En livraison", value: orderStats.processing, color: COLORS[1] },
-      { name: "Livrées", value: orderStats.delivered, color: COLORS[2] },
-      { name: "Annulées", value: orderStats.cancelled, color: COLORS[3] },
-    ];
-  };
-  const handleUserChange = (userId: string): void => {
-    setSelectedUserId(userId);
-  };
-
-  // Charger les statistiques de commandes
+  // Gestion des erreurs
   useEffect(() => {
-    const fetchOrderStats = async () => {
-      setStatsLoading(true);
-      try {
-        const result = await getOrderStatistics();
-        if (result.success && result.statistics) {
-          setOrderStats(result.statistics);
-          toast({
-            title: "Statistiques chargées",
-            description:
-              "Les statistiques de commandes ont été chargées avec succès",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Erreur de chargement",
-            description:
-              result.error ||
-              "Impossible de charger les statistiques de commandes",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des statistiques:", error);
-        toast({
-          title: "Erreur",
-          description:
-            "Une erreur est survenue lors du chargement des statistiques",
-          variant: "destructive",
-        });
-      } finally {
-        setStatsLoading(false);
-      }
+    if (usersError) {
+      toast.error(usersError);
+      clearUsersError();
+    }
+    if (foodsError) {
+      toast.error(foodsError);
+      clearFoodsError();
+    }
+    if (deliveryError) {
+      toast.error(deliveryError);
+      clearDeliveryError();
+    }
+  }, [usersError, foodsError, deliveryError]);
+
+  // Fonction de rafraîchissement
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        getAllUsers(),
+        getAllUsersOrders(),
+        getAllFoods(),
+        getPopularFoods(),
+        getAllDeliverymen(),
+      ]);
+      toast.success("Données actualisées avec succès");
+    } catch (error) {
+      toast.error("Erreur lors de l'actualisation");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Filtrage des données par date
+  const getFilteredData = useMemo(() => {
+    const now = new Date();
+    const filterDate = new Date();
+
+    switch (dateFilter) {
+      case "today":
+        filterDate.setHours(0, 0, 0, 0);
+        break;
+      case "week":
+        filterDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        filterDate.setMonth(now.getMonth() - 1);
+        break;
+      case "quarter":
+        filterDate.setMonth(now.getMonth() - 3);
+        break;
+      case "year":
+        filterDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        filterDate.setFullYear(2000); // Toutes les données
+    }
+
+    const filteredOrders = orders.filter((order) => {
+      const orderDate = new Date(order.createdAt);
+      return dateFilter === "all" || orderDate >= filterDate;
+    });
+
+    const filteredUsers = users.filter((user) => {
+      const userDate = new Date(user.createdAt);
+      return dateFilter === "all" || userDate >= filterDate;
+    });
+
+    return { filteredOrders, filteredUsers };
+  }, [orders, users, dateFilter]);
+
+  // Calcul des statistiques principales
+  // Calcul des statistiques principales - VERSION RÉALISTE
+  const dashboardStats = useMemo(() => {
+    const { filteredOrders, filteredUsers } = getFilteredData;
+
+    // Statistiques des commandes
+    const totalOrders = filteredOrders.length;
+    const pendingOrders = filteredOrders.filter(
+      (o) => o.status === "pending",
+    ).length;
+    const inProgressOrders = filteredOrders.filter(
+      (o) => o.status === "in-progress",
+    ).length;
+    const deliveredOrders = filteredOrders.filter(
+      (o) => o.status === "delivered",
+    ).length;
+    const canceledOrders = filteredOrders.filter(
+      (o) => o.status === "canceled",
+    ).length;
+
+    // 🔥 REVENUS RÉALISTES - SEULEMENT LES COMMANDES LIVRÉES
+    const deliveredOrdersData = filteredOrders.filter(
+      (o) => o.status === "delivered",
+    );
+
+    const totalRevenue = deliveredOrdersData.reduce(
+      (sum, order) => sum + (order.total || 0),
+      0,
+    );
+
+    // 💰 REVENUS POTENTIELS (toutes commandes sauf pas accepeter)
+    const potentialOrdersData = filteredOrders.filter(
+      (o) => o.status === "pending",
+    );
+
+    const potentialRevenue = potentialOrdersData.reduce(
+      (sum, order) => sum + (order.total || 0),
+      0,
+    );
+
+    // 📉 REVENUS PERDUS (commandes annulées)
+    const canceledOrdersData = filteredOrders.filter(
+      (o) => o.status === "canceled",
+    );
+
+    const lostRevenue = canceledOrdersData.reduce(
+      (sum, order) => sum + (order.total || 0),
+      0,
+    );
+
+    // Moyennes
+    const averageOrderValue =
+      deliveredOrders > 0 ? totalRevenue / deliveredOrders : 0;
+    const averagePotentialOrderValue =
+      potentialOrdersData.length > 0
+        ? potentialRevenue / potentialOrdersData.length
+        : 0;
+
+    // Utilisateurs
+    const totalUsers = filteredUsers.length;
+    const newUsers = filteredUsers.filter((user) => {
+      const userDate = new Date(user.createdAt);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return userDate >= weekAgo;
+    }).length;
+
+    // Livreurs
+    const activeDeliverymen = deliverymen.filter(
+      (d) => d.status === "active",
+    ).length;
+    const totalDeliverymen = deliverymen.length;
+
+    // Plats
+    const totalProducts = foods.length;
+    const availableProducts = foods.filter((f) => f.isAvailable).length;
+
+    // 📊 Taux de conversion et performance
+    const conversionRate =
+      totalOrders > 0 ? (deliveredOrders / totalOrders) * 100 : 0;
+    const cancellationRate =
+      totalOrders > 0 ? (canceledOrders / totalOrders) * 100 : 0;
+
+    return {
+      totalOrders,
+      pendingOrders,
+      inProgressOrders,
+      deliveredOrders,
+      canceledOrders,
+      totalRevenue, // 💰 REVENUS RÉELS (delivered only)
+      potentialRevenue, // 💰 REVENUS POTENTIELS
+      lostRevenue, // 📉 REVENUS PERDUS
+      averageOrderValue, // Moyenne des commandes livrées
+      averagePotentialOrderValue, // Moyenne de toutes les commandes non-annulées
+      totalUsers,
+      newUsers,
+      activeDeliverymen,
+      totalDeliverymen,
+      totalProducts,
+      availableProducts,
+      conversionRate,
+      cancellationRate,
     };
+  }, [getFilteredData, deliverymen, foods]);
 
-    fetchOrderStats();
-  }, [toast]);
+  // Données pour les graphiques - VERSION RÉALISTE
+  const chartData = useMemo(() => {
+    const { filteredOrders } = getFilteredData;
 
-  useEffect(() => {
-    const fetchPopularFoods = async () => {
-      setIsLoading(true);
-      try {
-        const popFood = await getPopularFoods();
+    // Données pour le graphique temporel - REVENUS RÉELS vs POTENTIELS
+    const timeData = filteredOrders.reduce((acc: any[], order) => {
+      const date = new Date(order.createdAt).toLocaleDateString();
+      const existing = acc.find((item) => item.date === date);
 
-        if (popFood.success) {
-          setPopFoods(popFood.trindingfoods as TrendingFood[]);
-          toast({
-            title: "Plats populaires chargés",
-            description: "Les plats tendance ont été chargés avec succès",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Échec du chargement des plats populaires",
-            description:
-              popFood.error ||
-              "Une erreur est survenue lors du chargement des plats tendance",
-            variant: "destructive",
-          });
+      if (existing) {
+        existing.orders += 1;
+        existing.potentialRevenue += order.total || 0;
+
+        // Ajouter aux revenus réels seulement si livré
+        if (order.status === "delivered") {
+          existing.realRevenue += order.total || 0;
+          existing.deliveredOrders += 1;
         }
-      } catch (error) {
-        console.error("Erreur lors du chargement des plats populaires:", error);
-        toast({
-          title: "Erreur",
-          description:
-            "Échec du chargement des plats tendance. Veuillez réessayer plus tard.",
-          variant: "destructive",
+
+        // Ajouter aux revenus perdus si annulé
+        if (order.status === "canceled") {
+          existing.lostRevenue += order.total || 0;
+          existing.canceledOrders += 1;
+        }
+      } else {
+        acc.push({
+          date,
+          orders: 1,
+          deliveredOrders: order.status === "delivered" ? 1 : 0,
+          canceledOrders: order.status === "canceled" ? 1 : 0,
+          realRevenue: order.status === "delivered" ? order.total || 0 : 0,
+          potentialRevenue: order.total || 0,
+          lostRevenue: order.status === "canceled" ? order.total || 0 : 0,
         });
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    // Simuler le chargement du graphique
-    setTimeout(() => {
-      setIsChartLoading(false);
-    }, 1500);
+      return acc;
+    }, []);
 
-    fetchPopularFoods();
-  }, [toast]);
+    // Données pour le graphique en secteurs des statuts - MISE À JOUR
+    const statusData = [
+      {
+        name: "En attente",
+        value: dashboardStats.pendingOrders,
+        color: CHART_COLORS.warning,
+      },
+      {
+        name: "En cours",
+        value: dashboardStats.inProgressOrders,
+        color: CHART_COLORS.info,
+      },
+      {
+        name: "Livrées",
+        value: dashboardStats.deliveredOrders,
+        color: CHART_COLORS.secondary,
+      },
+      {
+        name: "Annulées",
+        value: dashboardStats.canceledOrders,
+        color: CHART_COLORS.danger,
+      },
+    ].filter((item) => item.value > 0);
 
-  // Stats card skeleton loader component
-  const StatsCardSkeleton = () => (
-    <div className="grid grid-cols-2 gap-4 mt-4">
-      <Card className="border border-gray-200">
-        <CardContent className="pt-6">
-          <div className="flex items-center mb-1">
-            <Skeleton className="h-8 w-8 rounded-full mr-3" />
-            <Skeleton className="h-8 w-20" />
+    // Top des Plats populaires
+    const productStats = trendingFoods.slice(0, 5).map((food) => ({
+      name: food.name,
+      sales: food.discount,
+      revenue: food.originalPrice * food.discount,
+    }));
+
+    return { timeData, statusData, productStats };
+  }, [getFilteredData, dashboardStats, trendingFoods]);
+
+  if (isLoading && orders.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center space-y-6 p-8">
+          <div className="relative">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
-          <Skeleton className="h-3 w-24 mt-2" />
-        </CardContent>
-      </Card>
-      <Card className="border border-gray-200">
-        <CardContent className="pt-6">
-          <div className="flex items-center mb-1">
-            <Skeleton className="h-8 w-8 rounded-full mr-3" />
-            <Skeleton className="h-8 w-20" />
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-semibold">
+              Chargement du tableau de bord
+            </h2>
+            <p className="text-muted-foreground">
+              Récupération des données en cours...
+            </p>
           </div>
-          <Skeleton className="h-3 w-24 mt-2" />
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  // Food card skeleton loader component
-  const FoodCardSkeleton = () => (
-    <div className="relative group overflow-hidden rounded-lg">
-      <Skeleton className="h-44 w-full rounded-lg" />
-      <div className="mt-2 text-center">
-        <Skeleton className="h-4 w-full mx-auto" />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0">
-        <h2 className="text-3xl font-bold tracking-tight">Tableau de bord</h2>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4" /> Actualiser
-          </Button>
-          <Button variant="outline">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 15 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5">
-              <path
-                d="M13.9 2.5C13.9 2.22386 13.6761 2 13.4 2C13.1239 2 12.9 2.22386 12.9 2.5V12.5C12.9 12.7761 13.1239 13 13.4 13C13.6761 13 13.9 12.7761 13.9 12.5V2.5ZM9.4 2.5C9.4 2.22386 9.17614 2 8.9 2C8.62386 2 8.4 2.22386 8.4 2.5V12.5C8.4 12.7761 8.62386 13 8.9 13C9.17614 13 9.4 12.7761 9.4 12.5V2.5ZM4.9 2.5C4.9 2.22386 4.67614 2 4.4 2C4.12386 2 3.9 2.22386 3.9 2.5V12.5C3.9 12.7761 4.12386 13 4.4 13C4.67614 13 4.9 12.7761 4.9 12.5V2.5ZM2.4 2C2.17909 2 2 2.17909 2 2.4V12.6C2 12.8209 2.17909 13 2.4 13C2.62091 13 2.8 12.8209 2.8 12.6V2.4C2.8 2.17909 2.62091 2 2.4 2ZM6.9 2C6.67909 2 6.5 2.17909 6.5 2.4V12.6C6.5 12.8209 6.67909 13 6.9 13C7.12091 13 7.3 12.8209 7.3 12.6V2.4C7.3 2.17909 7.12091 2 6.9 2ZM11.4 2C11.1791 2 11 2.17909 11 2.4V12.6C11 12.8209 11.1791 13 11.4 13C11.6209 13 11.8 12.8209 11.8 12.6V2.4C11.8 2.17909 11.6209 2 11.4 2Z"
-                fill="currentColor"
-                fillRule="evenodd"
-                clipRule="evenodd"></path>
-            </svg>
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* En-tête avec filtres */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 flex items-center gap-3">
+              <BarChart3 className="h-10 w-10 text-blue-600" />
+              Tableau de Bord
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Vue d'ensemble de votre activité commerciale
+            </p>
+          </div>
 
-      {/* Order Statistics Cards */}
-      <div className="grid grid-cols-4 gap-4 md:grid-cols-3">
-        {/* Cartes de statistiques des commandes */}
-        <div className="grid grid-cols-4 gap-4 md:col-span-1 lg:col-span-2">
-          {statsLoading ? (
-            <>
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-            </>
-          ) : (
-            <>
-              <Card className="border border-gray-200 bg-amber-50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center mb-1">
-                    <Clock className="mr-3 text-amber-600" />
-                    <div className="text-3xl font-bold text-amber-600">
-                      {orderStats?.pending || 0}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">En traitement</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-gray-200 bg-blue-50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center mb-1">
-                    <CookingPot className="mr-3 text-blue-600" />
-                    <div className="text-3xl font-bold text-blue-600">
-                      {orderStats?.processing || 0}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">En livraison</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-gray-200 bg-green-50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center mb-1">
-                    <CheckCircle className="mr-3 text-green-600" />
-                    <div className="text-3xl font-bold text-green-600">
-                      {orderStats?.delivered || 0}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Livrées</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-gray-200 bg-red-50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center mb-1">
-                    <XCircle className="mr-3 text-red-600" />
-                    <div className="text-3xl font-bold text-red-600">
-                      {orderStats?.cancelled || 0}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Annulées</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
+          <div className="flex items-center gap-3">
+            <Select
+              value={dateFilter}
+              onValueChange={(value: DateFilter) => setDateFilter(value)}>
+              <SelectTrigger className="w-40">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Aujourd'hui</SelectItem>
+                <SelectItem value="week">Cette semaine</SelectItem>
+                <SelectItem value="month">Ce mois</SelectItem>
+                <SelectItem value="quarter">Ce trimestre</SelectItem>
+                <SelectItem value="year">Cette année</SelectItem>
+                <SelectItem value="all">Toutes les données</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="flex items-center gap-2">
+              <RefreshCw
+                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              Actualiser
+            </Button>
+          </div>
         </div>
 
-        {/* Graphique en secteurs des commandes */}
-        <div className="md:col-span-1 lg:col-span-1">
-          <Card className="h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium flex items-center">
-                <ShoppingBag className="mr-2 h-5 w-5 text-muted-foreground" />
-                Répartition des commandes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center">
-              {statsLoading ? (
-                <div className="flex flex-col items-center justify-center w-full h-48">
-                  <Skeleton className="h-40 w-40 rounded-full" />
-                  <Skeleton className="h-4 w-40 mt-4" />
+        {/* Cartes de statistiques principales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Commandes totales */}
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">
+                    Total Commandes
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {dashboardStats.totalOrders}
+                  </p>
+                  <p className="text-blue-100 text-xs mt-1">
+                    {dashboardStats.deliveredOrders} livrées •{" "}
+                    {dashboardStats.pendingOrders} en attente
+                  </p>
                 </div>
-              ) : (
-                <>
-                  <div className="h-48 w-full">
-                    <ResponsiveContainer
-                      width="100%"
-                      height="100%">
-                      <PieChart>
-                        <Pie
-                          data={getOrderChartData()}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                          label={({ name, percent }) =>
-                            `${name} ${(percent * 100).toFixed(0)}%`
-                          }>
-                          {getOrderChartData().map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={entry.color}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => [
-                            `${value} commandes`,
-                            "Quantité",
-                          ]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="mt-2 text-center">
-                    <p className="text-lg font-semibold">
-                      Total: {orderStats?.total || 0} commandes
-                    </p>
-                  </div>
-                </>
-              )}
+                <ShoppingCart className="h-12 w-12 text-blue-100" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Revenus RÉELS - Seulement commandes livrées */}
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">
+                    💰 Revenus Réels
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {dashboardStats.totalRevenue.toFixed(2)} MAD
+                  </p>
+                  <p className="text-green-100 text-xs mt-1">
+                    Moy: {dashboardStats.averageOrderValue.toFixed(2)} MAD •{" "}
+                    {dashboardStats.deliveredOrders} livrées
+                  </p>
+                </div>
+                <DollarSign className="h-12 w-12 text-green-100" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Revenus Potentiels */}
+          {/* <Card className="bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-amber-100 text-sm font-medium">
+                    📈 Revenus Non-Livréé (En attente)
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {dashboardStats.potentialRevenue.toFixed(2)} MAD
+                  </p>
+                  <p className="  text-amber-100 text-xs mt-1">
+                    -{dashboardStats.lostRevenue.toFixed(2)} MAD perdus
+                  </p>
+                </div>
+                <TrendingUp className="h-12 w-12 text-amber-100" />
+              </div>
+            </CardContent>
+          </Card> */}
+
+          {/* Utilisateurs */}
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">Clients</p>
+                  <p className="text-3xl font-bold">
+                    {dashboardStats.totalUsers}
+                  </p>
+                  <p className="text-purple-100 text-xs mt-1">
+                    +{dashboardStats.newUsers} cette semaine
+                  </p>
+                </div>
+                <Users className="h-12 w-12 text-purple-100" />
+              </div>
             </CardContent>
           </Card>
         </div>
-      </div>
 
-      {/* CHART */}
-      {/* Nouveau composant de graphique des commandes */}
-      <div className="col-span-3">
-        <OrdersAnalyticsChart className="h-full" />
-      </div>
-
-      {/* Votre graphique de statistiques annuelles existant */}
-      {/* <div className="col-span-3">
-        <Card className="h-full">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <div className="flex items-center">
-              <ChartIcon className="mr-2 h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-lg font-medium">
-                Statistiques Annuelles
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>teste</CardContent>
-        </Card>
-      </div> */}
-
-      {/* top selling foods */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Pizza className="mr-2 h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg font-medium">
-                  Plats les plus vendus
-                </CardTitle>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs"
-                onClick={() => window.location.reload()}>
-                Actualiser
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isLoading ? (
-                // Show skeletons while loading
-                Array(6)
-                  .fill(0)
-                  .map((_, i) => <FoodCardSkeleton key={i} />)
-              ) : popFoods.length > 0 ? (
-                // Show actual food items when loaded
-                popFoods.map((food) => (
-                  <div
-                    key={food.id}
-                    className="relative group overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <div className="relative h-44 w-full overflow-hidden rounded-lg">
-                      <Image
-                        width={500}
-                        height={500}
-                        src={food.image}
-                        alt={food.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                        Vendu : {food.discount}
-                      </div>
-                    </div>
-                    <div className="mt-2 text-center p-2">
-                      <h3 className="text-sm font-medium line-clamp-1">
-                        {food.name}
-                      </h3>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                // Show message when no foods are found
-                <div className="col-span-3 text-center py-8">
-                  <Pizza className="mx-auto h-12 w-12 text-muted-foreground opacity-30" />
-                  <p className="mt-2 text-muted-foreground">
-                    Aucun plat tendance trouvé
+        {/* Nouvelle section - Métriques de Performance */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Taux de Conversion */}
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Taux de Livraison
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {dashboardStats.conversionRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {dashboardStats.deliveredOrders} sur{" "}
+                    {dashboardStats.totalOrders} commandes
                   </p>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <CheckCircle className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-        <GalleryPage />
-      </div>
+          {/* Taux d'Annulation */}
+          <Card className="border-l-4 border-l-red-500">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Taux d'Annulation
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {dashboardStats.cancellationRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {dashboardStats.canceledOrders} commandes annulées
+                  </p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="flex justify-between items-center border-t pt-4 text-sm text-muted-foreground">
-        <div>© DIXIE.</div>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Paramètres du restaurant
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Profil
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4">
-              <path d="M10 3H6a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h4M16 17l5-5-5-5M19.8 12H9" />
-            </svg>
-          </Button>
+          {/* Commandes en Cours */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    En Cours de Traitement
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {dashboardStats.pendingOrders +
+                      dashboardStats.inProgressOrders}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {dashboardStats.pendingOrders} pending •{" "}
+                    {dashboardStats.inProgressOrders} en cours
+                  </p>
+                </div>
+                <Clock className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Graphiques principaux - MISE À JOUR */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Évolution temporelle - REVENUS RÉELS vs POTENTIELS */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Évolution des Revenus Réels
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%">
+                  <AreaChart data={chartData.timeData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f0f0f0"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#666"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      stroke="#666"
+                      fontSize={12}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value, name) => [
+                        `${value} ${name.includes("Revenue") ? "MAD" : ""}`,
+                        name,
+                      ]}
+                    />
+                    <Legend />
+
+                    {/* Revenus Potentiels (arrière-plan) */}
+                    {/* <Area
+                      type="monotone"
+                      dataKey="potentialRevenue"
+                      stackId="1"
+                      stroke="#f59e0b"
+                      fill="#f59e0b"
+                      fillOpacity={0.3}
+                      name="Revenus Potentiels"
+                    /> */}
+
+                    {/* Revenus Réels (livrées seulement) */}
+                    <Area
+                      type="monotone"
+                      dataKey="realRevenue"
+                      stackId="2"
+                      stroke={CHART_COLORS.secondary}
+                      fill={CHART_COLORS.secondary}
+                      fillOpacity={0.8}
+                      name="Revenus Réels (Livrées)"
+                    />
+
+                    {/* Commandes Livrées */}
+                    <Area
+                      type="monotone"
+                      dataKey="deliveredOrders"
+                      stackId="3"
+                      stroke={CHART_COLORS.primary}
+                      fill={CHART_COLORS.primary}
+                      fillOpacity={0.6}
+                      name="Commandes Livrées"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Graphiques principaux */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Évolution temporelle */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Évolution des Commandes et Revenus
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%">
+                  <AreaChart data={chartData.timeData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f0f0f0"
+                    />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#666"
+                      fontSize={12}
+                    />
+                    <YAxis
+                      stroke="#666"
+                      fontSize={12}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="orders"
+                      stackId="1"
+                      stroke={CHART_COLORS.primary}
+                      fill={CHART_COLORS.primary}
+                      fillOpacity={0.6}
+                      name="Commandes"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stackId="2"
+                      stroke={CHART_COLORS.secondary}
+                      fill={CHART_COLORS.secondary}
+                      fillOpacity={0.6}
+                      name="Revenus (MAD)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Répartition des statuts - MISE À JOUR */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChartIcon className="h-5 w-5 text-purple-600" />
+                Statuts des Commandes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 w-full">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData.statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }>
+                      {chartData.statusData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [`${value} commandes`, "Quantité"]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Légende détaillée */}
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    Livrées
+                  </span>
+                  <span className="font-medium">
+                    {dashboardStats.deliveredOrders} (
+                    {dashboardStats.conversionRate.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    En attente
+                  </span>
+                  <span className="font-medium">
+                    {dashboardStats.pendingOrders}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    En cours
+                  </span>
+                  <span className="font-medium">
+                    {dashboardStats.inProgressOrders}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    Annulées
+                  </span>
+                  <span className="font-medium">
+                    {dashboardStats.canceledOrders} (
+                    {dashboardStats.cancellationRate.toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Statistiques détaillées */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Plats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Pizza className="h-5 w-5 text-green-600" />
+                Plats les Plus Vendus
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {chartData.productStats.length > 0 ? (
+                  chartData.productStats.map((product, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                        <span className="font-medium">{product.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-600">
+                          {product.sales} vendus
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {product.revenue.toFixed(2)} MAD
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Pizza className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                    <p>Aucun produit populaire disponible</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Métriques Système */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-red-600" />
+                Métriques Système
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Plats */}
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Package className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium">Plats</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600">
+                      {dashboardStats.availableProducts}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      sur {dashboardStats.totalProducts} total
+                    </div>
+                  </div>
+                </div>
+
+                {/* Livreurs actifs */}
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Truck className="h-5 w-5 text-green-600" />
+                    <span className="font-medium">Livreurs Actifs</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-green-600">
+                      {dashboardStats.activeDeliverymen}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {(
+                        (dashboardStats.activeDeliverymen /
+                          dashboardStats.totalDeliverymen) *
+                        100
+                      ).toFixed(0)}
+                      % disponible
+                    </div>
+                  </div>
+                </div>
+
+                {/* Taux de conversion */}
+                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                    <span className="font-medium">Taux de Livraison</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-purple-600">
+                      {dashboardStats.totalOrders > 0
+                        ? (
+                            (dashboardStats.deliveredOrders /
+                              dashboardStats.totalOrders) *
+                            100
+                          ).toFixed(1)
+                        : 0}
+                      %
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {dashboardStats.deliveredOrders} livrées
+                    </div>
+                  </div>
+                </div>
+
+                {/* Croissance utilisateurs */}
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-orange-600" />
+                    <span className="font-medium">Nouveaux Clients</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-orange-600">
+                      +{dashboardStats.newUsers}
+                    </div>
+                    <div className="text-sm text-gray-500">cette semaine</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pied de page */}
+        <div className="flex justify-between items-center pt-6 border-t border-gray-200 text-sm text-gray-500">
+          <div>
+            © 2024 AFOOD Dashboard - Données actualisées le{" "}
+            {new Date().toLocaleString()}
+          </div>
+          <div className="flex items-center gap-4">
+            <Badge
+              variant="outline"
+              className="text-green-600 border-green-200">
+              {orders.length} commandes total
+            </Badge>
+            <Badge
+              variant="outline"
+              className="text-blue-600 border-blue-200">
+              {users.length} utilisateurs
+            </Badge>
+            <Badge
+              variant="outline"
+              className="text-purple-600 border-purple-200">
+              {foods.length} Plats
+            </Badge>
+          </div>
         </div>
       </div>
     </div>
