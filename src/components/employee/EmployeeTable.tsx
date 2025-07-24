@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { PlusCircle, Pencil, Trash2, FileDown } from "lucide-react";
 
-import EmptyState from "@/components/common/EmptyState";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -101,7 +100,7 @@ export default function EmployeeTable({
   if (employees.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <EmptyState
+        {/* <EmptyState
           title="No Employees Found"
           description="There are no employees added yet."
           action={
@@ -112,7 +111,7 @@ export default function EmployeeTable({
               </Button>
             </Link>
           }
-        />
+        /> */}
       </div>
     );
   }
