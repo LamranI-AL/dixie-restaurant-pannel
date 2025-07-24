@@ -1,6 +1,6 @@
 /** @format */
 import { useState, useEffect } from "react";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   getAllUsersOrders,
   getOrdersByUser,

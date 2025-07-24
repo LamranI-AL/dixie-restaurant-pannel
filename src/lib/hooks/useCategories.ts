@@ -59,7 +59,7 @@ export function useCategories(): UseCategoriesReturn {
       });
 
       // Optionnel: mettre à jour la liste locale
-      const newCategory: any = { id: docRef.id, ...data };
+      const newCategory: any = { ...data };
       setCategories((prev) => [...prev, newCategory]);
 
       return { success: true, id: docRef.id };
