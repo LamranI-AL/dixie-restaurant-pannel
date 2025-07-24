@@ -641,8 +641,8 @@ export default function ProfessionalDashboard() {
                         border: "1px solid #e0e0e0",
                         borderRadius: "8px",
                       }}
-                      formatter={(value, name) => [
-                        `${value} ${name.includes("Revenue") ? "MAD" : ""}`,
+                      formatter={(value, name: any) => [
+                        `${value} ${name?.includes("Revenue") ? "MAD" : ""}`,
                         name,
                       ]}
                     />

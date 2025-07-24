@@ -85,7 +85,7 @@ import {
   suspendDeliveryman,
   reactivateDeliveryman,
 } from "@/actions/deliveryman";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/utils/format-date";
 
 interface ActiveDeliverymenTableProps {

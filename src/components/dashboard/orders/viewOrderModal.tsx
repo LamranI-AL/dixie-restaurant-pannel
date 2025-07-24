@@ -76,8 +76,8 @@ export function ViewOrderModal({ orderId, trigger }: ViewOrderModalProps) {
   const getStatusColor = (status: OrderStatus): string => {
     const statusColors: Record<OrderStatus | any, string> = {
       pending: "bg-blue-100 text-blue-600",
-      confirmed: "bg-green-100 text-green-600",
-      accepted: "bg-green-100 text-green-600",
+      delivered: "bg-green-100 text-green-600",
+      "in-progress": "bg-green-100 text-green-600",
       //   cooking: "bg-amber-100 text-amber-600",
       //   "ready-for-delivery": "bg-purple-100 text-purple-600",
       //   "on-the-way": "bg-pink-100 text-pink-600",

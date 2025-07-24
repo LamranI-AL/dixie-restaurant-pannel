@@ -71,7 +71,7 @@ export default function CuisinesPage() {
     e.preventDefault();
 
     if (!nomCuisine.trim()) {
-      toast.error("Le nom de la cuisine est requis");
+      toast.error("Le nom de la catégorie est requis");
       return;
     }
 
@@ -106,7 +106,7 @@ export default function CuisinesPage() {
         toast.error(result.error || "Échec de l'ajout de la cuisine");
       }
     } catch (error) {
-      console.error("Erreur lors de l'ajout de la cuisine :", error);
+      console.error("Erreur lors de l'ajout de la catégorie :", error);
       toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setChargementFormulaire(false);
@@ -167,7 +167,7 @@ export default function CuisinesPage() {
               rx="1"
             />
           </svg>
-          <h2 className="text-2xl font-bold">Liste des Cuisines</h2>
+          <h2 className="text-2xl font-bold">Liste des Catégories</h2>
           <div className="ml-2 flex h-7 items-center justify-center rounded-full bg-blue-100 px-3 text-xs font-medium text-blue-500">
             {cuisinesFiltrees.length}
           </div>
@@ -178,7 +178,7 @@ export default function CuisinesPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Ex : Rechercher par nom de cuisine.."
+              placeholder="Ex : Rechercher par nom de catégories.."
               className="w-[240px] pl-8"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
@@ -210,14 +210,14 @@ export default function CuisinesPage() {
                     Ajouter une Nouvelle Cuisine
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Saisissez les détails de la nouvelle cuisine
+                    Saisissez les détails de la nouvelle catégorie
                   </p>
                 </div>
 
                 {/* Téléchargement d'image */}
                 <div className="space-y-2">
-                  <Label htmlFor="image">Image de la Cuisine</Label>
-                  <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-md p-2">
+                  <Label htmlFor="image">Image de la catégorie</Label>
+                  <div className="bg-gradient-to-b from-slate-600 to-slate-400 rounded-md p-2">
                     <UploadButton
                       endpoint="imageUploader"
                       onClientUploadComplete={(res) => {
@@ -254,18 +254,18 @@ export default function CuisinesPage() {
 
                 {/* Nom de la Cuisine */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom de la Cuisine</Label>
+                  <Label htmlFor="name">Nom de la catégorie</Label>
                   <Input
                     id="name"
                     required
-                    placeholder="Saisissez le nom de la cuisine"
+                    placeholder="Saisissez le nom de la catégorie"
                     value={nomCuisine}
                     onChange={(e) => setNomCuisine(e.target.value)}
                   />
                 </div>
 
                 {/* Description de la Cuisine */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="description">Description (Optionnel)</Label>
                   <Textarea
                     id="description"
@@ -275,7 +275,7 @@ export default function CuisinesPage() {
                     className="resize-none"
                     rows={3}
                   />
-                </div>
+                </div> */}
 
                 {/* Bouton de Soumission */}
                 <Button
@@ -312,7 +312,7 @@ export default function CuisinesPage() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 text-center">N°</TableHead>
                   <TableHead>Image</TableHead>
-                  <TableHead>Nom de la Cuisine</TableHead>
+                  <TableHead>Nom de la Catégorie</TableHead>
                   <TableHead className="w-24 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -364,46 +364,7 @@ export default function CuisinesPage() {
 
       {/* Pied de page */}
       <div className="flex justify-between items-center border-t pt-4 text-sm text-muted-foreground">
-        <div>© dixie.</div>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Paramètres du restaurant
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Profil
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line
-                x1="21"
-                y1="12"
-                x2="9"
-                y2="12"
-              />
-            </svg>
-          </Button>
-        </div>
+        <div>© afood.</div>
       </div>
     </div>
   );

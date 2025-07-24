@@ -54,7 +54,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Interfaces pour le restaurant
 interface OpeningHours {
@@ -337,8 +337,8 @@ export function RestaurantInitializer({
                       currentStep > i + 1
                         ? "border-blue-600 text-blue-600"
                         : currentStep === i + 1
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : "border-gray-300 text-gray-400"
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-gray-300 text-gray-400"
                     }`}>
                   {currentStep > i + 1 ? (
                     <CheckCircle2 className="w-5 h-5" />

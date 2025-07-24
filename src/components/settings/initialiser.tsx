@@ -79,15 +79,15 @@ import {
   PenLine,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-// import { useToast } from "@/lib/hooks/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getRestaurantById, updateRestaurant } from "@/actions/restaurant";
 import { Restaurant, OpeningHours, DeliveryOption } from "@/lib/types";
 import { UploadButton } from "@/utils/uploadthing";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+// import { useToast } from "@/lib/hooks/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
+import { useRestaurants } from "@/lib/hooks/useRestaurant"; // Import du hook
+import { useToast } from "@/hooks/use-toast";
 
 // Constants
 const DAYS_OF_WEEK = [
@@ -163,9 +163,19 @@ export function RestaurantManagement({
 }: {
   restaurantId: string;
 }) {
-  <Toaster />;
   const router = useRouter();
   const { toast } = useToast();
+
+  // Utilisation du hook useRestaurants
+  const {
+    loading: hookLoading,
+    error: hookError,
+    getRestaurantById,
+    updateRestaurant,
+    deleteRestaurant,
+    clearError,
+  } = useRestaurants();
+
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("general");
@@ -203,6 +213,10 @@ export function RestaurantManagement({
         setIsLoading(true);
         setLoadingMessage("Chargement des informations du restaurant...");
 
+        // Clear any previous errors
+        clearError();
+
+        // Utilisation de la fonction du hook
         const result = await getRestaurantById(restaurantId);
 
         if (result.success && result.restaurant) {
@@ -277,7 +291,18 @@ export function RestaurantManagement({
     if (restaurantId) {
       fetchRestaurantData();
     }
-  }, [restaurantId, router, toast, form]);
+  }, [restaurantId, router, toast, form, getRestaurantById, clearError]);
+
+  // Handle hook errors
+  useEffect(() => {
+    if (hookError) {
+      toast({
+        title: "Erreur",
+        description: hookError,
+        variant: "destructive",
+      });
+    }
+  }, [hookError, toast]);
 
   // Simulate upload progress
   const simulateProgress = (
@@ -334,6 +359,9 @@ export function RestaurantManagement({
         "Mise à jour de votre restaurant...",
       );
 
+      // Clear any previous errors
+      clearError();
+
       // Prepare updated data
       const updatedData: Partial<Restaurant> = {
         name: formValues.name,
@@ -348,7 +376,7 @@ export function RestaurantManagement({
         packagingCharges: formValues.packagingCharges,
       };
 
-      // Call update service
+      // Utilisation de la fonction du hook pour la mise à jour
       const result = await updateRestaurant(restaurantId, updatedData);
 
       clearInterval(progressInterval);
@@ -368,7 +396,7 @@ export function RestaurantManagement({
           ...updatedData,
         });
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || "Erreur lors de la mise à jour");
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
@@ -381,6 +409,40 @@ export function RestaurantManagement({
     } finally {
       setIsSaving(false);
       setTimeout(() => setUploadProgress(0), 1000);
+    }
+  };
+
+  // Handle restaurant deletion
+  const handleDeleteRestaurant = async () => {
+    if (!restaurant) return;
+
+    try {
+      setLoadingMessage("Suppression du restaurant...");
+
+      // Utilisation de la fonction du hook pour la suppression
+      const result = await deleteRestaurant(restaurantId);
+
+      if (result.success) {
+        toast({
+          title: "Restaurant supprimé",
+          description: "Le restaurant a été supprimé avec succès",
+          variant: "default",
+        });
+
+        // Redirection vers le dashboard
+        router.push("/dashboard");
+      } else {
+        throw new Error(result.error || "Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la suppression",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -414,7 +476,7 @@ export function RestaurantManagement({
   };
 
   // If loading, show skeleton
-  if (isLoading) {
+  if (isLoading || hookLoading) {
     return <RestaurantManagementSkeleton message={loadingMessage} />;
   }
 
@@ -442,6 +504,8 @@ export function RestaurantManagement({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <Toaster />
+
       {/* Header with restaurant info */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
         <div className="flex justify-between items-start">
@@ -544,12 +608,12 @@ export function RestaurantManagement({
           value={activeTab}
           onValueChange={setActiveTab}
           className="w-full">
-          <TabsList className="w-full grid grid-cols-5 bg-gray-50 p-0 h-auto">
+          <TabsList className="w-full grid grid-cols-4 bg-gray-50 p-0 h-auto">
             {[
               { id: "general", icon: Building, label: "Général" },
               { id: "horaires", icon: Clock, label: "Horaires" },
               { id: "services", icon: Package, label: "Services" },
-              { id: "documents", icon: FileText, label: "Documents" },
+              // { id: "documents", icon: FileText, label: "Documents" },
               { id: "parametres", icon: Settings, label: "Paramètres" },
             ].map((tab) => (
               <TabsTrigger
@@ -1088,14 +1152,13 @@ export function RestaurantManagement({
                                   <div className="relative">
                                     <Input
                                       type="number"
-                                      // value={option}
                                       min="0"
                                       step="0.01"
                                       placeholder="0.00"
-                                      className="bg-white pl-6"
+                                      className="bg-white pl-12"
                                       {...field}
                                     />
-                                    <span className="absolute left-3 top-2.5 text-gray-500">
+                                    <span className="absolute left-3 top-2.5 text-gray-500 text-sm">
                                       MAD
                                     </span>
                                   </div>
@@ -1115,7 +1178,7 @@ export function RestaurantManagement({
                 </TabsContent>
 
                 {/* Documents Tab */}
-                <TabsContent
+                {/* <TabsContent
                   value="documents"
                   className="mt-0">
                   <div className="space-y-6">
@@ -1181,7 +1244,7 @@ export function RestaurantManagement({
                       ))}
                     </div>
                   </div>
-                </TabsContent>
+                </TabsContent> */}
 
                 {/* Settings Tab */}
                 <TabsContent
@@ -1325,7 +1388,7 @@ export function RestaurantManagement({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSaving || isUploading}
+                  disabled={isSaving || isUploading || hookLoading}
                   className="min-w-36">
                   {isSaving ? (
                     <div className="flex items-center">
@@ -1379,16 +1442,16 @@ export function RestaurantManagement({
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                // Delete logic to implement
-                setDeleteDialogOpen(false);
-                toast({
-                  title: "Fonctionnalité à venir",
-                  description: "La suppression sera bientôt disponible",
-                  variant: "default",
-                });
-              }}>
-              Supprimer définitivement
+              onClick={handleDeleteRestaurant}
+              disabled={hookLoading}>
+              {hookLoading ? (
+                <div className="flex items-center">
+                  <span className="mr-2">Suppression...</span>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                </div>
+              ) : (
+                "Supprimer définitivement"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

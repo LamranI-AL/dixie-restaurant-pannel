@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       "www.gravatar.com",
       "img.icons8.com",
       "o6lr91qesq.ufs.sh",
+      "f3e8wywyb5.ufs.sh",
+      "*",
       "o6lr91qesq.ufs.rocks",
     ],
   },

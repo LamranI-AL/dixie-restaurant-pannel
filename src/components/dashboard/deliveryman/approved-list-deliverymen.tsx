@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Check, Eye, FileText, X } from "lucide-react";
 import { approveDeliveryman, rejectDeliveryman } from "@/actions/deliveryman";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,

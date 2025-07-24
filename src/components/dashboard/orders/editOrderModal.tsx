@@ -136,7 +136,7 @@ export function EditOrderModal({
   const orderStatusOptions: { value: OrderStatus; label: string }[] = [
     { value: "pending", label: "En attente" },
     { value: "in-progress", label: "En préparation" },
-    { value: "completed", label: "Terminée" },
+    { value: "delivered", label: "Terminée" },
     { value: "canceled", label: "Annulée" },
   ];
 

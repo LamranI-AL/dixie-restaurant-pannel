@@ -158,7 +158,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <SidebarItem
             href="/clients"
             icon={User}
-            label="Clients"
+            label="Utilisateurs"
             isActive={location === "/clients"}
           />
         </SidebarSection>
@@ -168,7 +168,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <SidebarItem
             href="/categories"
             icon={FolderTree}
-            label="Cuisines"
+            label="Catégories"
             isActive={location === "/categories"}
           />
           <SidebarItem
@@ -177,12 +177,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             label="Plats"
             isActive={location === "/foods"}
           />
-          <SidebarItem
+          {/* <SidebarItem
             href="/trending-foods"
             icon={TrendingUp}
             label="Plats Tendances"
             isActive={location === "/trending-foods"}
-          />
+          /> */}
         </SidebarSection>
 
         {/* Livraisons */}
