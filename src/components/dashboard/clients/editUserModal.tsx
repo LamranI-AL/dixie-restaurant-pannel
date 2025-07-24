@@ -103,7 +103,7 @@ export function EditUserModal({
         displayName: user.displayName || "",
         email: user.email || "",
         phone: user.phone || "",
-        address: user.address || "",
+        address: "",
         role: user.role || "customer",
       } as any);
     }
