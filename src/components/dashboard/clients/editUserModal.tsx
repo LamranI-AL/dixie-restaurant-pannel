@@ -298,11 +298,11 @@ export function EditUserModal({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Shield className="h-4 w-4" />
-                Rôle et permissions
+                Rôle et permissions (soon...)
               </div>
               <Separator />
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="role">Rôle</Label>
                 <Select
                   value={formData.role}
@@ -322,18 +322,18 @@ export function EditUserModal({
                     <SelectItem value="admin">Administrateur</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               {/* Informations de l'utilisateur */}
               <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1">
-                <div className="flex justify-between">
+                {/* <div className="flex justify-between">
                   <span className="text-muted-foreground">ID:</span>
                   <span className="font-mono text-xs">{user.id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">UID:</span>
                   <span className="font-mono text-xs">{user.uid}</span>
-                </div>
+                </div> */}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Créé le:</span>
                   <span className="text-xs">

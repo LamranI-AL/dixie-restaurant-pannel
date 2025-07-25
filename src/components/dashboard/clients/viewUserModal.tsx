@@ -64,6 +64,7 @@ const getRoleStyle = (role?: string) => {
 export function ViewUserModal({ userId, trigger }: ViewUserModalProps) {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<UserType | null>(null);
+  console.log(userId);
 
   const { getUserById, getOrdersByUser, loading, error, clearError } =
     useUsers();
@@ -86,8 +87,10 @@ export function ViewUserModal({ userId, trigger }: ViewUserModalProps) {
   const loadUserData = async () => {
     try {
       const userResult = await getUserById(userId);
+      console.log(userResult);
       if (userResult.success && userResult.user) {
         setUser(userResult.user);
+        console.log(userResult);
 
         // Charger aussi les commandes de l'utilisateur
         const ordersResult = await getOrdersByUser(userId);

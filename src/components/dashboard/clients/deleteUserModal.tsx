@@ -152,9 +152,9 @@ export function DeleteUserModal({
                               ? "Staff"
                               : "Client"}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      {/* <span className="text-xs text-gray-500">
                         ID: {userId.slice(-8)}
-                      </span>
+                      </span> */}
                     </div>
                   </div>
                 </div>

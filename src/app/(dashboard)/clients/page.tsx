@@ -42,12 +42,6 @@ import { ViewUserModal } from "@/components/dashboard/clients/viewUserModal";
 import { EditUserModal } from "@/components/dashboard/clients/editUserModal";
 import { DeleteUserModal } from "@/components/dashboard/clients/deleteUserModal";
 
-// Modals pour les utilisateurs
-// import { AddUserModal } from "@/components/dashboard/users/addUserModal";
-// import { ViewUserModal } from "@/components/dashboard/users/viewUserModal";
-// import { EditUserModal } from "@/components/dashboard/users/editUserModal";
-// import { DeleteUserModal } from "@/components/dashboard/users/deleteUserModal";
-
 // Fonction pour obtenir les couleurs des rôles
 const getRoleStyle = (role?: string) => {
   const styles: Record<string, { text: string; style: string }> = {
@@ -220,6 +214,7 @@ export default function UsersPage() {
       </div>
     );
   }
+  console.log(filteredUsers);
 
   // ============================================================================
   // AFFICHAGE PRINCIPAL
@@ -355,11 +350,13 @@ export default function UsersPage() {
               <TableBody>
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
+                    // <div key={user.displayName}>
                     <UserRow
-                      key={user.id}
+                      key={user.displayName}
                       user={user}
                       onSuccess={handleUserSuccess}
                     />
+                    // </div>
                   ))
                 ) : (
                   <TableRow>
@@ -396,6 +393,7 @@ export default function UsersPage() {
 // ============================================================================
 function UserRow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
   const roleStyle = getRoleStyle(user.role);
+  console.log(user);
 
   return (
     <TableRow>
@@ -416,7 +414,7 @@ function UserRow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
               {user.displayName || "Nom non défini"}
             </div>
             <div className="text-xs text-muted-foreground">
-              ID: {user.id?.slice(-8) || "N/A"}
+              {/* ID: {user.id?.slice(-8) || "N/A"} */}
             </div>
           </div>
         </div>
@@ -472,12 +470,12 @@ function UserRow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
             userId={user.id}
             onSuccess={onSuccess}
           />
-          <DeleteUserModal
+          {/* <DeleteUserModal
             userId={user.id}
             userName={user.displayName}
             userEmail={user.email}
             onSuccess={onSuccess}
-          />
+          /> */}
         </div>
       </TableCell>
     </TableRow>

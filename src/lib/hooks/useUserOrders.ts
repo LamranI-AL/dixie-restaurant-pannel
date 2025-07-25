@@ -21,6 +21,54 @@ import { db } from "@/lib/firebase/config";
 import { User, Order } from "@/lib/types";
 import { toast } from "sonner";
 
+// 🔧 FONCTION DE NORMALISATION DES DONNÉES UTILISATEUR
+const normalizeUserData = (userData: any, docId?: string): any => {
+  return {
+    // ID - utiliser docId si disponible, sinon userData.id, sinon userData.uid
+    id: docId || userData.id || userData.uid || "",
+
+    // UID - utiliser userData.uid si disponible, sinon userData.id
+    uid: userData.uid || userData.id || "",
+
+    // Nom d'affichage
+    displayName: userData.displayName || userData.name || "",
+
+    // Email
+    email: userData.email || "",
+
+    // Téléphone - normaliser les différents champs possibles
+    phone: userData.phone || userData.phoneNumber || "",
+
+    // Adresse
+    address: userData.address || "",
+
+    // Photo
+    photoURL: userData.photoURL || null,
+
+    // Rôle - par défaut customer
+    role: userData.role || "customer",
+
+    // Dates - normalisation des timestamps
+    createdAt: userData.createdAt?.toDate
+      ? userData.createdAt.toDate()
+      : userData.createdAt instanceof Date
+        ? userData.createdAt
+        : new Date(),
+
+    updatedAt: userData.updatedAt?.toDate
+      ? userData.updatedAt.toDate()
+      : userData.updatedAt instanceof Date
+        ? userData.updatedAt
+        : new Date(),
+
+    lastLoginAt: userData.lastLoginAt?.toDate
+      ? userData.lastLoginAt.toDate()
+      : userData.lastLoginAt instanceof Date
+        ? userData.lastLoginAt
+        : null,
+  };
+};
+
 // Helper function to extract coordinates from different possible formats
 function _getCoordinates(orderData: any) {
   // Default coordinates (can be center of city or other default)
@@ -319,20 +367,6 @@ export function useUsers(): UseUsersReturn {
     setError(null);
   }, []);
 
-  // Utility function to convert Firebase Timestamps to Date objects
-  const serializeUserTimestamps = (data: any): User => {
-    const createdAt = data.createdAt?.toDate
-      ? data.createdAt.toDate()
-      : data.createdAt || new Date();
-    const updatedAt = data.updatedAt?.toDate
-      ? data.updatedAt.toDate()
-      : data.updatedAt || new Date();
-    const lastLoginAt = data.lastLoginAt?.toDate
-      ? data.lastLoginAt.toDate()
-      : data.lastLoginAt || null;
-    return { ...data, createdAt, updatedAt, lastLoginAt } as User;
-  };
-
   const addUser = useCallback(async (data: Partial<User | any>) => {
     setLoading(true);
     setError(null);
@@ -353,13 +387,14 @@ export function useUsers(): UseUsersReturn {
       const userDoc = doc(db, "users", docRef.id);
       await updateDoc(userDoc, { id: docRef.id });
 
-      const addedUser = {
+      const addedUser = normalizeUserData({
         id: docRef.id,
         ...newUser,
         createdAt: new Date(),
         updatedAt: new Date(),
         lastLoginAt: new Date(),
-      } as any;
+      });
+
       setUsers((prev) => [...prev, addedUser]);
 
       return {
@@ -377,6 +412,7 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
+  // 🔧 FONCTION CORRIGÉE - getAllUsers avec normalisation
   const getAllUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -385,10 +421,14 @@ export function useUsers(): UseUsersReturn {
       const q = query(userRef);
       const querySnapshot = await getDocs(q);
 
-      const usersData: any[] = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ ...serializeUserTimestamps(doc.data()) });
+      const usersData: User[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const userData = docSnap.data();
+        // Utiliser la fonction de normalisation avec l'ID du document
+        const normalizedUser = normalizeUserData(userData, docSnap.id);
+        usersData.push(normalizedUser);
       });
+
       setUsers(usersData);
       return { success: true, users: usersData };
     } catch (err) {
@@ -401,6 +441,7 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
+  // 🔧 FONCTION CORRIGÉE - getUserByUid avec normalisation
   const getUserByUid = useCallback(async (uid: string) => {
     setLoading(true);
     setError(null);
@@ -414,15 +455,9 @@ export function useUsers(): UseUsersReturn {
       }
 
       const userDoc = querySnapshot.docs[0];
-      const userData = serializeUserTimestamps(userDoc.data());
+      const userData = normalizeUserData(userDoc.data(), userDoc.id);
 
-      return {
-        success: true,
-        user: {
-          // id: userDoc.id,
-          ...userData,
-        },
-      };
+      return { success: true, user: userData };
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
@@ -433,6 +468,7 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
+  // 🔧 FONCTION CORRIGÉE - getUserById avec normalisation
   const getUserById = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
@@ -445,14 +481,8 @@ export function useUsers(): UseUsersReturn {
       const docSnap = await getDoc(userRef);
 
       if (docSnap.exists()) {
-        const userData = serializeUserTimestamps(docSnap.data());
-        return {
-          success: true,
-          user: {
-            // id: docSnap.id,
-            ...userData,
-          },
-        };
+        const userData = normalizeUserData(docSnap.data(), docSnap.id);
+        return { success: true, user: userData };
       } else {
         return { success: false, error: "Utilisateur non trouvé" };
       }
@@ -466,6 +496,7 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
+  // 🔧 FONCTION CORRIGÉE - getUsersByRole avec normalisation
   const getUsersByRole = useCallback(
     async (role: "admin" | "manager" | "staff" | "customer") => {
       setLoading(true);
@@ -480,11 +511,9 @@ export function useUsers(): UseUsersReturn {
         const querySnapshot = await getDocs(q);
 
         const usersData: User[] = [];
-        querySnapshot.forEach((doc) => {
-          usersData.push({
-            // id: doc.id,
-            ...serializeUserTimestamps(doc.data()),
-          });
+        querySnapshot.forEach((docSnap) => {
+          const userData = normalizeUserData(docSnap.data(), docSnap.id);
+          usersData.push(userData);
         });
 
         return { success: true, users: usersData };
@@ -500,6 +529,7 @@ export function useUsers(): UseUsersReturn {
     [],
   );
 
+  // 🔧 FONCTION CORRIGÉE - getUsersByRestaurant avec normalisation
   const getUsersByRestaurant = useCallback(async (restaurantId: string) => {
     setLoading(true);
     setError(null);
@@ -513,8 +543,9 @@ export function useUsers(): UseUsersReturn {
       const querySnapshot = await getDocs(q);
 
       const usersData: User[] = [];
-      querySnapshot.forEach((doc) => {
-        usersData.push({ ...serializeUserTimestamps(doc.data()) });
+      querySnapshot.forEach((docSnap) => {
+        const userData = normalizeUserData(docSnap.data(), docSnap.id);
+        usersData.push(userData);
       });
 
       return { success: true, users: usersData };
@@ -541,10 +572,12 @@ export function useUsers(): UseUsersReturn {
       const userRef = doc(db, "users", id);
       await updateDoc(userRef, updatedData);
 
-      // Update local state
+      // Update local state with normalized data
       setUsers((prev) =>
         prev.map((user) =>
-          user.id === id ? { ...user, ...data, updatedAt: new Date() } : user,
+          user.id === id
+            ? normalizeUserData({ ...user, ...data, updatedAt: new Date() })
+            : user,
         ),
       );
 
@@ -580,6 +613,7 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
+  // Reste des fonctions de commandes inchangées...
   const createOrderForUser = useCallback(
     async (userId: string, orderData: Partial<Order>) => {
       setLoading(true);
@@ -699,10 +733,6 @@ export function useUsers(): UseUsersReturn {
     [],
   );
 
-  /**
-   * 🔧 FONCTION CORRIGÉE - getOrderById
-   * Utilise collectionGroup pour trouver la commande par ID
-   */
   const getOrderById = useCallback(async (userId: string, orderId: string) => {
     setLoading(true);
     setError(null);
@@ -711,7 +741,6 @@ export function useUsers(): UseUsersReturn {
         `[getOrderById] Searching for order ${orderId} for user ${userId}`,
       );
 
-      // Méthode 1: Recherche directe si on a l'userId
       if (userId && userId !== "" && userId !== "undefined") {
         const orderRef = doc(db, "users", userId, "orders", orderId);
         const orderSnap = await getDoc(orderRef);
@@ -729,7 +758,6 @@ export function useUsers(): UseUsersReturn {
         }
       }
 
-      // Méthode 2: Fallback avec collectionGroup
       console.log(
         `[getOrderById] Direct search failed, using collectionGroup fallback`,
       );
@@ -784,7 +812,7 @@ export function useUsers(): UseUsersReturn {
         ordersData.push(mappedOrder);
       });
 
-      setOrders(ordersData); // Update local state for orders
+      setOrders(ordersData);
       return { success: true, orders: ordersData };
     } catch (err) {
       const errorMessage = (err as Error).message;
@@ -796,9 +824,6 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
-  /**
-   * Get all orders from user subcollections - Optimized version like orderService
-   */
   const getAllUsersOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -810,15 +835,13 @@ export function useUsers(): UseUsersReturn {
       let allOrders: Order[] = [];
 
       try {
-        // TENTATIVE 1: Sans orderBy pour éviter l'erreur d'index
         const ordersQuery = query(collectionGroup(db, "orders"));
         const snapshot = await getDocs(ordersQuery);
 
         const orders = snapshot.docs.map((doc) => {
           const data = doc.data();
-          // Extract userId from reference path
           const pathSegments = doc.ref.path.split("/");
-          const userId = pathSegments[1]; // users/{userId}/orders/{orderId}
+          const userId = pathSegments[1];
 
           return OrderMapper.mapOrderFields({
             ...data,
@@ -827,7 +850,6 @@ export function useUsers(): UseUsersReturn {
           });
         });
 
-        // Tri côté client par date de création (plus récent en premier)
         orders.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -844,7 +866,6 @@ export function useUsers(): UseUsersReturn {
         throw indexError;
       }
 
-      // Enrichir avec les noms d'utilisateurs si possible
       if (allOrders.length > 0) {
         try {
           const usersRef = collection(db, "users");
@@ -863,13 +884,11 @@ export function useUsers(): UseUsersReturn {
             });
           });
 
-          // Enrichir les commandes avec les informations utilisateurs
           allOrders.forEach((order) => {
             if (order.userId && usersMap.has(order.userId)) {
               const userInfo = usersMap.get(order.userId);
               (order as any).userName = userInfo.displayName;
               (order as any).customerName = userInfo.customerName;
-              // Utiliser les infos utilisateur si pas déjà dans la commande
               if (!order.customerPhone && userInfo.phone) {
                 (order as any).customerPhone = userInfo.phone;
               }
@@ -899,26 +918,20 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
-  /**
-   * 🔧 FONCTION CORRIGÉE - getUserOrderById
-   * Recherche optimisée par collectionGroup
-   */
   const getUserOrderById = useCallback(async (orderId: string) => {
     setLoading(true);
     setError(null);
     try {
       console.log(`[getUserOrderById] Searching for order ${orderId} globally`);
 
-      // Utiliser collectionGroup pour une recherche optimisée
       const ordersQuery = query(collectionGroup(db, "orders"));
       const snapshot = await getDocs(ordersQuery);
 
-      // Chercher la commande avec l'ID spécifique
       for (const docSnap of snapshot.docs) {
         if (docSnap.id === orderId) {
           const data = docSnap.data();
           const pathSegments = docSnap.ref.path.split("/");
-          const foundUserId = pathSegments[1]; // users/{userId}/orders/{orderId}
+          const foundUserId = pathSegments[1];
 
           const mappedOrder = OrderMapper.mapOrderFields({
             ...data,
@@ -926,7 +939,6 @@ export function useUsers(): UseUsersReturn {
             userId: foundUserId,
           });
 
-          // Enrichir avec les infos utilisateur si possible
           try {
             const userRef = doc(db, "users", foundUserId);
             const userSnap = await getDoc(userRef);
@@ -963,10 +975,6 @@ export function useUsers(): UseUsersReturn {
     }
   }, []);
 
-  /**
-   * 🔧 FONCTION CORRIGÉE - updateGlobalOrder
-   * Utilise collectionGroup pour trouver et mettre à jour la commande
-   */
   const updateGlobalOrder = useCallback(
     async (orderId: string, orderData: Partial<Order>) => {
       setLoading(true);
@@ -979,14 +987,13 @@ export function useUsers(): UseUsersReturn {
         let orderDocRef = null;
         let foundUserId = null;
 
-        // Utiliser collectionGroup pour trouver la commande
         const ordersQuery = query(collectionGroup(db, "orders"));
         const snapshot = await getDocs(ordersQuery);
 
         for (const docSnap of snapshot.docs) {
           if (docSnap.id === orderId) {
             const pathSegments = docSnap.ref.path.split("/");
-            foundUserId = pathSegments[1]; // users/{userId}/orders/{orderId}
+            foundUserId = pathSegments[1];
             orderDocRef = doc(db, "users", foundUserId, "orders", orderId);
             console.log(
               `[updateGlobalOrder] Order ${orderId} found for user ${foundUserId}`,
@@ -995,7 +1002,6 @@ export function useUsers(): UseUsersReturn {
           }
         }
 
-        // Si pas trouvé via collectionGroup, essayer la collection principale
         if (!orderDocRef) {
           const mainOrderDocRef = doc(db, "orders", orderId);
           const mainOrderSnapshot = await getDoc(mainOrderDocRef);
@@ -1014,24 +1020,20 @@ export function useUsers(): UseUsersReturn {
           return { success: false, error: errorMessage };
         }
 
-        // Préparer les données pour la mise à jour
         const dataToUpdate: any = {
           ...orderData,
           updatedAt: serverTimestamp(),
         };
 
-        // Empêcher la mise à jour de createdAt
         if (dataToUpdate.createdAt instanceof Date) {
           delete dataToUpdate.createdAt;
         }
 
-        // Effectuer la mise à jour
         await updateDoc(orderDocRef, dataToUpdate);
         console.log(
           `[updateGlobalOrder] Order ${orderId} updated successfully`,
         );
 
-        // Mettre à jour l'état local
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
             order.id === orderId
@@ -1053,10 +1055,6 @@ export function useUsers(): UseUsersReturn {
     [],
   );
 
-  /**
-   * 🔧 FONCTION CORRIGÉE - updateOrderStatus
-   * Utilise collectionGroup pour trouver la commande si userId pas fourni
-   */
   const updateOrderStatus = useCallback(
     async (
       userId: string,
@@ -1074,7 +1072,6 @@ export function useUsers(): UseUsersReturn {
         let orderRef = null;
         let actualUserId = userId;
 
-        // Si userId fourni, essayer directement
         if (userId && userId !== "" && userId !== "undefined") {
           orderRef = doc(db, "users", userId, "orders", orderId);
           const orderSnap = await getDoc(orderRef);
@@ -1087,7 +1084,6 @@ export function useUsers(): UseUsersReturn {
           }
         }
 
-        // Si pas trouvé directement, utiliser collectionGroup
         if (!orderRef) {
           const ordersQuery = query(collectionGroup(db, "orders"));
           const snapshot = await getDocs(ordersQuery);
@@ -1111,7 +1107,6 @@ export function useUsers(): UseUsersReturn {
           return { success: false, error: errorMessage };
         }
 
-        // Préparer les données de mise à jour
         const updateData = {
           status: newStatus,
           updatedAt: serverTimestamp(),
@@ -1123,7 +1118,6 @@ export function useUsers(): UseUsersReturn {
           `[updateOrderStatus] Order status updated successfully to ${newStatus}`,
         );
 
-        // Mettre à jour l'état local
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
             order.id === orderId
@@ -1150,9 +1144,6 @@ export function useUsers(): UseUsersReturn {
     [],
   );
 
-  /**
-   * Mark an order as in-progress (driver started delivery) - Like orderService
-   */
   const startDelivery = useCallback(
     async (userId: string, orderId: string) => {
       return updateOrderStatus(userId, orderId, "on-the-way", {
@@ -1162,9 +1153,6 @@ export function useUsers(): UseUsersReturn {
     [updateOrderStatus],
   );
 
-  /**
-   * Mark an order as delivered - Like orderService
-   */
   const markOrderAsDelivered = useCallback(
     async (userId: string, orderId: string, deliveryData: any = {}) => {
       return updateOrderStatus(userId, orderId, "delivered", {
@@ -1175,9 +1163,6 @@ export function useUsers(): UseUsersReturn {
     [updateOrderStatus],
   );
 
-  /**
-   * Accept an order for delivery - Like orderService
-   */
   const acceptOrder = useCallback(
     async (userId: string, orderId: string) => {
       return updateOrderStatus(userId, orderId, "confirmed", {
@@ -1187,14 +1172,6 @@ export function useUsers(): UseUsersReturn {
     [updateOrderStatus],
   );
 
-  // ========================
-  // 🔥 AJOUTER CETTE FONCTION AU HOOK useUsers
-  // ========================
-
-  /**
-   * 🗑️ NOUVELLE FONCTION - deleteOrderById
-   * Supprime une commande en utilisant collectionGroup pour la recherche
-   */
   const deleteOrderById = useCallback(async (orderId: string) => {
     setLoading(true);
     setError(null);
@@ -1204,14 +1181,13 @@ export function useUsers(): UseUsersReturn {
       let orderDocRef = null;
       let foundUserId = null;
 
-      // Utiliser collectionGroup pour trouver la commande
       const ordersQuery = query(collectionGroup(db, "orders"));
       const snapshot = await getDocs(ordersQuery);
 
       for (const docSnap of snapshot.docs) {
         if (docSnap.id === orderId) {
           const pathSegments = docSnap.ref.path.split("/");
-          foundUserId = pathSegments[1]; // users/{userId}/orders/{orderId}
+          foundUserId = pathSegments[1];
           orderDocRef = doc(db, "users", foundUserId, "orders", orderId);
           console.log(
             `[deleteOrderById] Order ${orderId} found for user ${foundUserId}`,
@@ -1220,7 +1196,6 @@ export function useUsers(): UseUsersReturn {
         }
       }
 
-      // Si pas trouvé via collectionGroup, essayer la collection principale
       if (!orderDocRef) {
         const mainOrderDocRef = doc(db, "orders", orderId);
         const mainOrderSnapshot = await getDoc(mainOrderDocRef);
@@ -1239,11 +1214,9 @@ export function useUsers(): UseUsersReturn {
         return { success: false, error: errorMessage };
       }
 
-      // Effectuer la suppression
       await deleteDoc(orderDocRef);
       console.log(`[deleteOrderById] Order ${orderId} deleted successfully`);
 
-      // Mettre à jour l'état local - supprimer de la liste
       setOrders((prevOrders) =>
         prevOrders.filter((order) => order.id !== orderId),
       );
@@ -1276,15 +1249,15 @@ export function useUsers(): UseUsersReturn {
     createDraftOrderForUser,
     completeOrder,
     updateOrderPayment,
-    getOrderById, // ✅ CORRIGÉE - Recherche optimisée
-    getOrdersByUser, // For fetching all orders of a specific user
-    getAllUsersOrders, // ✅ FONCTIONNE - Optimized version
-    getUserOrderById, // ✅ CORRIGÉE - Recherche globale optimisée
-    updateGlobalOrder, // ✅ CORRIGÉE - Mise à jour optimisée
-    updateOrderStatus, // ✅ CORRIGÉE - Like orderService
-    startDelivery, // ✅ CORRIGÉE - Like orderService
-    markOrderAsDelivered, // ✅ CORRIGÉE - Like orderService
-    acceptOrder, // ✅ CORRIGÉE - Like orderService
+    getOrderById,
+    getOrdersByUser,
+    getAllUsersOrders,
+    getUserOrderById,
+    updateGlobalOrder,
+    updateOrderStatus,
+    startDelivery,
+    markOrderAsDelivered,
+    acceptOrder,
     clearError,
     deleteOrderById,
   };

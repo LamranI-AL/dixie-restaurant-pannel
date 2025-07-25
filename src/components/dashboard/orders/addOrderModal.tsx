@@ -185,9 +185,9 @@ export function AddOrderModal({ trigger, onSuccess }: AddOrderModalProps) {
 
   const calculateTotals = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * 0.1; // 10% tax
-    const deliveryFee = formData.orderType === "delivery" ? 5 : 0;
-    const packagingFee = 2;
+    const tax = subtotal * 0; // 10% tax MAIS NON on vas transformer a 0% demander par le client
+    const deliveryFee = formData.orderType === "delivery" ? 7 : 0;
+    const packagingFee = 0;
     const total = subtotal + tax + deliveryFee + packagingFee;
 
     return { subtotal, tax, deliveryFee, packagingFee, total };
@@ -198,7 +198,7 @@ export function AddOrderModal({ trigger, onSuccess }: AddOrderModalProps) {
     // D'abord, essayer de trouver l'utilisateur par téléphone ou email
     // Pour l'instant, on crée un utilisateur guest avec les informations fournies
     const userData = {
-      uid: `guest-${Date.now()}`, // UID temporaire pour les clients invités
+      // uid: `guest-${Date.now()}`, // UID temporaire pour les clients invités
       email: formData.customerEmail || `guest-${Date.now()}@temp.com`,
       displayName: formData.customerName,
       phoneNumber: formData.customerPhone,
