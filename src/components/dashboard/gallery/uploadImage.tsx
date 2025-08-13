@@ -120,7 +120,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   Glissez-déposez ou cliquez pour uploader
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  PNG, JPG, WEBP (compression auto si superieur 2MB)
+                  PNG, JPG, WEBP (compression auto → 400KB)
                 </p>
                 <Button 
                   type="button"

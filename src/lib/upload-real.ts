@@ -11,8 +11,8 @@ export const UPLOAD_CONFIG = {
   // Dossier local pour stocker les métadonnées (optionnel)
   storageKey: "uploaded-images",
   
-  // Limite Firebase en bytes (600KB pour laisser de la marge pour autres champs)
-  maxBase64Size: 600000,
+  // Limite Firebase en bytes (400KB pour laisser de la marge pour autres champs)
+  maxBase64Size: 400000,
 };
 
 
@@ -146,7 +146,7 @@ export function compressImage(
         let attempts = 0;
         const maxAttempts = 5;
 
-        // Boucle pour garantir < 600KB (Firebase document total limit)
+        // Boucle pour garantir < 400KB (Firebase document total limit)
         while (compressedBase64.length > UPLOAD_CONFIG.maxBase64Size && attempts < maxAttempts) {
           attempts++;
           currentQuality -= 0.1; // Réduire la qualité
@@ -241,8 +241,8 @@ export async function uploadImageReal(file: File): Promise<string> {
     const base64SizeKB = Math.round(compressedBase64.length / 1024);
     console.log(`Taille finale base64: ${base64SizeKB}KB`);
 
-    if (compressedBase64.length > UPLOAD_CONFIG.maxBase64Size) { // > 600KB
-      throw new Error(`Image trop volumineuse après compression (${base64SizeKB}KB). Limite: 600KB`);
+    if (compressedBase64.length > UPLOAD_CONFIG.maxBase64Size) { // > 400KB
+      throw new Error(`Image trop volumineuse après compression (${base64SizeKB}KB). Limite: 400KB`);
     }
 
     // Générer un ID unique pour l'image
