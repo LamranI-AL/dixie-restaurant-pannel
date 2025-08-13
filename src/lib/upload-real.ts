@@ -172,49 +172,31 @@ export async function uploadImageReal(file: File): Promise<string> {
     // Simuler un délai d'upload réaliste
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // En mode développement, utiliser la compression et base64
-    if (UPLOAD_CONFIG.devMode) {
-      console.log("🔧 Mode développement - stockage local de la vraie image");
+    // Toujours utiliser base64 (même processus dev et prod)
+    console.log("📷 Upload image en base64");
 
-      // Compresser l'image pour optimiser la taille
-      const compressedBase64 = await compressImage(file, 800, 0.8);
+    // Compresser l'image pour optimiser la taille
+    const compressedBase64 = await compressImage(file, 800, 0.8);
 
-      // Générer un ID unique pour l'image
-      const imageId = `img_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
+    // Générer un ID unique pour l'image
+    const imageId = `img_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
 
-      // Sauvegarder les métadonnées (optionnel)
-      const imageData: UploadedImageData = {
-        id: imageId,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: compressedBase64,
-        uploadedAt: new Date(),
-      };
+    // Sauvegarder les métadonnées (optionnel)
+    const imageData: UploadedImageData = {
+      id: imageId,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: compressedBase64,
+      uploadedAt: new Date(),
+    };
 
-      saveImageMetadata(imageData);
+    saveImageMetadata(imageData);
 
-      toast.success(`Image "${file.name}" uploadée en local`);
-      return compressedBase64;
-    }
-
-    // Mode production - Upload vers Firebase Storage
-    console.log("🔥 Mode production - upload vers Firebase Storage");
-
-    // Générer un nom de fichier unique
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 9);
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${timestamp}_${randomId}.${fileExtension}`;
-    const filePath = `${UPLOAD_CONFIG.firebasePath}/${fileName}`;
-
-    // Upload vers Firebase
-    const downloadURL = await uploadFile(file, filePath);
-
-    toast.success(`Image "${file.name}" uploadée vers Firebase`);
-    return downloadURL;
+    toast.success(`Image "${file.name}" uploadée`);
+    return compressedBase64;
   } catch (error) {
     console.error("Erreur lors de l'upload:", error);
     const errorMessage =
