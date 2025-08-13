@@ -23,23 +23,11 @@ const nextConfig: NextConfig = {
       "o6lr91qesq.ufs.sh",
       "f3e8wywyb5.ufs.sh",
       "o6lr91qesq.ufs.rocks",
-      "firebasestorage.googleapis.com",
     ],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.firebasestorage.app',
-        pathname: '/**',
-      },
-    ],
-    // Permettre les images base64
+    // Configuration pour permettre les images base64 en production
     unoptimized: false,
     dangerouslyAllowSVG: true,
+    minimumCacheTTL: 60,
   },
 };
 

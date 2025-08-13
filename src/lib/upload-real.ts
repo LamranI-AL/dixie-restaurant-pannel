@@ -1,18 +1,17 @@
 /** @format */
 
-// lib/upload-real.ts - Upload avec vraies images en mode développement et Firebase en production
+// lib/upload-real.ts - Upload avec images base64 pour dev et prod
 import { toast } from "sonner";
-import { uploadFile, deleteFile } from "./firebase/storage";
 
 // Configuration
 export const UPLOAD_CONFIG = {
-  // Mode développement utilise le stockage local (base64), production utilise Firebase
-  devMode: process.env.NODE_ENV === 'development',
+  // Toujours utiliser le stockage base64 (dev et prod)
+  devMode: true, // Force base64 pour dev et prod
 
   // Dossier local pour stocker les métadonnées (optionnel)
   storageKey: "uploaded-images",
 
-  // Path Firebase pour les images
+  // Path Firebase pour les images (non utilisé)
   firebasePath: "images",
 };
 
@@ -207,19 +206,17 @@ export async function uploadImageReal(file: File): Promise<string> {
 }
 
 /**
- * Supprimer une image (en mode dev, on ne fait rien car c'est en base64)
+ * Supprimer une image (images base64 - aucune suppression nécessaire)
  */
 export async function deleteImageReal(imageUrl: string): Promise<boolean> {
   try {
-    // En mode développement, les images base64 n'ont pas besoin d'être "supprimées"
-    if (UPLOAD_CONFIG.devMode || imageUrl.startsWith("data:image/")) {
-      console.log("🔧 Image locale - aucune suppression nécessaire");
+    // Les images base64 n'ont pas besoin d'être "supprimées"
+    if (imageUrl.startsWith("data:image/")) {
+      console.log("📷 Image base64 - aucune suppression nécessaire");
       return true;
     }
 
-    // Mode production - Supprimer de Firebase Storage
-    console.log("🔥 Suppression de Firebase Storage");
-    await deleteFile(imageUrl);
+    console.log("📷 Suppression d'image");
     toast.success("Image supprimée avec succès");
     return true;
   } catch (error) {
