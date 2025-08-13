@@ -116,7 +116,7 @@ const ImageUploader = ({
           onClick={handleUploadClick}>
           <ImagePlus className="h-10 w-10 text-gray-400 mb-2" />
           <p className="text-sm text-gray-500 text-center">{label}</p>
-          <p className="text-xs text-gray-400 mt-1">Max size: 2MB (compression auto si > 2MB)</p>
+          <p className="text-xs text-gray-400 mt-1">Max size: 2MB (compression auto si superieur 2MB)</p>
         </div>
       )}
       <input
