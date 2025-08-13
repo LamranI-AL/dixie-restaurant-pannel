@@ -6,7 +6,7 @@ import React, { useCallback, useState } from "react";
 import CustomImage from "@/components/ui/CustomImage";
 import { ImageIcon, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { uploadImage } from "@/utils/uploadthing";
+import { uploadImageReal } from "@/lib/upload-real";
 import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
@@ -31,12 +31,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     if (disabled) return;
 
     if (!file.type.startsWith("image/")) {
-      setError("Only image files are allowed");
+      setError("Seuls les fichiers image sont autorisés");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File size must be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Fichier trop volumineux (max 10MB)");
       return;
     }
 
@@ -44,12 +44,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     setIsUploading(true);
 
     try {
-      const uploadedUrl = await uploadImage(file);
+      const uploadedUrl = await uploadImageReal(file);
       setValue(uploadedUrl);
       await onChange(uploadedUrl);
     } catch (err) {
       console.error("Upload error:", err);
-      setError("Failed to upload file");
+      setError("Erreur lors de l'upload");
     } finally {
       setIsUploading(false);
     }
@@ -111,16 +111,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             {isUploading ? (
               <>
                 <Loader2 className="h-10 w-10 text-primary animate-spin mb-2" />
-                <p className="text-sm text-gray-500">Uploading image...</p>
+                <p className="text-sm text-gray-500">Upload en cours...</p>
               </>
             ) : (
               <>
                 <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
                 <p className="text-sm font-medium">
-                  Drag & drop or click to upload
+                  Glissez-déposez ou cliquez pour uploader
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  PNG, JPG, WEBP up to 5MB
+                  PNG, JPG, WEBP (compression auto si superieur 2MB)
                 </p>
                 <Button 
                   type="button"
@@ -129,7 +129,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   disabled={isUploading || disabled}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Select Image
+                  Sélectionner Image
                 </Button>
               </>
             )}

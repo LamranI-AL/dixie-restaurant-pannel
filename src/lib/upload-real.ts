@@ -10,10 +10,11 @@ export const UPLOAD_CONFIG = {
 
   // Dossier local pour stocker les métadonnées (optionnel)
   storageKey: "uploaded-images",
-
-  // Path Firebase pour les images (non utilisé)
-  firebasePath: "images",
+  
+  // Limite Firebase en bytes (600KB pour laisser de la marge pour autres champs)
+  maxBase64Size: 600000,
 };
+
 
 interface UploadedImageData {
   id: string;
@@ -30,6 +31,7 @@ interface UploadedImageData {
 export function validateImageFile(file: File): {
   isValid: boolean;
   error?: string;
+  needsCompression?: boolean;
 } {
   if (!file) {
     return { isValid: false, error: "Aucun fichier fourni" };
@@ -37,10 +39,6 @@ export function validateImageFile(file: File): {
 
   if (!file.type.startsWith("image/")) {
     return { isValid: false, error: "Le fichier doit être une image" };
-  }
-
-  if (file.size > 4 * 1024 * 1024) {
-    return { isValid: false, error: "L'image ne doit pas dépasser 4MB" };
   }
 
   const supportedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -51,7 +49,16 @@ export function validateImageFile(file: File): {
     };
   }
 
-  return { isValid: true };
+  // Vérifier si l'image dépasse 2MB
+  if (file.size > 2 * 1024 * 1024) {
+    return { 
+      isValid: true, 
+      needsCompression: true,
+      error: "Image supérieure à 2MB - compression automatique appliquée" 
+    };
+  }
+
+  return { isValid: true, needsCompression: false };
 }
 
 /**
@@ -84,28 +91,45 @@ export function convertImageToBase64(file: File): Promise<string> {
 }
 
 /**
- * Compresser une image avant stockage
+ * Compresser une image avant stockage avec garantie < 1MB pour Firebase
  */
 export function compressImage(
   file: File,
   maxWidth: number = 800,
   quality: number = 0.8,
+  forceCompression: boolean = false
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
 
-    img.onload = () => {
+    img.onload = async () => {
       // Calculer les nouvelles dimensions en gardant le ratio
       let { width, height } = img;
+      let currentQuality = quality;
 
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width;
-        width = maxWidth;
+      // Compression agressive pour Firebase (limite 600KB pour document total)
+      if (file.size > 2 * 1024 * 1024) { // > 2MB
+        maxWidth = Math.min(maxWidth, 300); // Max 300px
+        currentQuality = 0.2; // Qualité très faible
+      } else if (file.size > 1 * 1024 * 1024) { // > 1MB
+        maxWidth = Math.min(maxWidth, 350); // Max 350px
+        currentQuality = 0.3; // Qualité très basse
+      } else if (file.size > 500 * 1024) { // > 500KB  
+        maxWidth = Math.min(maxWidth, 400); // Max 400px
+        currentQuality = 0.4;
       }
 
-      // Redimensionner
+      // Redimensionner si nécessaire
+      if (forceCompression || width > maxWidth) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      }
+
+      // Redimensionner le canvas
       canvas.width = width;
       canvas.height = height;
 
@@ -117,8 +141,34 @@ export function compressImage(
         // Dessiner l'image redimensionnée
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Convertir en base64 avec compression
-        const compressedBase64 = canvas.toDataURL(file.type, quality);
+        // Compresser avec multiple tentatives si nécessaire
+        let compressedBase64 = canvas.toDataURL(file.type, currentQuality);
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        // Boucle pour garantir < 600KB (Firebase document total limit)
+        while (compressedBase64.length > UPLOAD_CONFIG.maxBase64Size && attempts < maxAttempts) {
+          attempts++;
+          currentQuality -= 0.1; // Réduire la qualité
+          
+          // Réduire encore la taille si nécessaire
+          if (attempts > 2) {
+            width = Math.floor(width * 0.8);
+            height = Math.floor(height * 0.8);
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+          }
+          
+          compressedBase64 = canvas.toDataURL(file.type, Math.max(0.1, currentQuality));
+          console.log(`Tentative ${attempts}: ${Math.round(compressedBase64.length / 1024)}KB`);
+        }
+
+        if (compressedBase64.length > 1000000) {
+          reject(new Error("Impossible de compresser l'image sous 1MB"));
+          return;
+        }
+
         resolve(compressedBase64);
       } else {
         reject(new Error("Impossible de créer le contexte canvas"));
@@ -168,14 +218,32 @@ export async function uploadImageReal(file: File): Promise<string> {
       throw new Error(validation.error);
     }
 
+    // Afficher un message si compression nécessaire
+    if (validation.needsCompression) {
+      toast.info("Image > 2MB détectée - compression automatique en cours...");
+    }
+
     // Simuler un délai d'upload réaliste
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Toujours utiliser base64 (même processus dev et prod)
     console.log("📷 Upload image en base64");
 
-    // Compresser l'image pour optimiser la taille
-    const compressedBase64 = await compressImage(file, 800, 0.8);
+    // Compresser l'image (plus agressif si > 2MB)
+    const compressedBase64 = await compressImage(
+      file, 
+      validation.needsCompression ? 600 : 800, 
+      validation.needsCompression ? 0.6 : 0.8,
+      validation.needsCompression
+    );
+
+    // Vérification finale de la taille pour Firebase
+    const base64SizeKB = Math.round(compressedBase64.length / 1024);
+    console.log(`Taille finale base64: ${base64SizeKB}KB`);
+
+    if (compressedBase64.length > UPLOAD_CONFIG.maxBase64Size) { // > 600KB
+      throw new Error(`Image trop volumineuse après compression (${base64SizeKB}KB). Limite: 600KB`);
+    }
 
     // Générer un ID unique pour l'image
     const imageId = `img_${Date.now()}_${Math.random()
@@ -194,7 +262,13 @@ export async function uploadImageReal(file: File): Promise<string> {
 
     saveImageMetadata(imageData);
 
-    toast.success(`Image "${file.name}" uploadée`);
+    // Message de succès adapté
+    if (validation.needsCompression) {
+      toast.success(`Image compressée (${base64SizeKB}KB) et uploadée avec succès!`);
+    } else {
+      toast.success(`Image "${file.name}" uploadée (${base64SizeKB}KB)`);
+    }
+    
     return compressedBase64;
   } catch (error) {
     console.error("Erreur lors de l'upload:", error);
