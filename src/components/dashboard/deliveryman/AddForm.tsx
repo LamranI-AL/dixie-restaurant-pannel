@@ -1,7 +1,7 @@
 /** @format */
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -26,7 +26,7 @@ import {
 import { Eye, EyeOff, ImageIcon, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Deliveryman } from "@/lib/types";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useDeliverymen } from "@/lib/hooks/useDeliverymen"; // Import du hook
@@ -68,6 +68,8 @@ export default function AddDeliveryman() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [imageIdentifier, setImageIdentifier] = useState<string | null>(null);
   const [imageProfile, setImageProfile] = useState<string | null>(null);
+  const profileFileInputRef = useRef<HTMLInputElement>(null);
+  const identityFileInputRef = useRef<HTMLInputElement>(null);
 
   // Utilisation du hook useDeliverymen
   const { addDeliveryman, loading } = useDeliverymen();
@@ -91,23 +93,32 @@ export default function AddDeliveryman() {
   });
 
   // Gestionnaires d'upload optimisés
-  const handleProfileUploadComplete = useCallback((res: any) => {
-    if (res?.[0]?.ufsUrl) {
-      setImageProfile(res[0].ufsUrl);
+  const handleProfileFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setImageProfile(uploadedUrl);
       toast.success("Image de profil téléchargée avec succès !");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(`Erreur de téléchargement : ${error instanceof Error ? error.message : "Erreur inconnue"}`);
     }
   }, []);
 
-  const handleIdentityUploadComplete = useCallback((res: any) => {
-    if (res?.[0]?.ufsUrl) {
-      setImageIdentifier(res[0].ufsUrl);
+  const handleIdentityFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setImageIdentifier(uploadedUrl);
       toast.success("Image d'identité téléchargée avec succès !");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(`Erreur de téléchargement : ${error instanceof Error ? error.message : "Erreur inconnue"}`);
     }
-  }, []);
-
-  const handleUploadError = useCallback((error: any) => {
-    console.error("Upload error:", error.message);
-    toast.error(`Erreur de téléchargement : ${error.message}`);
   }, []);
 
   // Gestionnaire de soumission du formulaire
@@ -231,11 +242,16 @@ export default function AddDeliveryman() {
               PNG, JPG, WEBP jusqu'à 5MB
             </p>
             <div className="mt-2">
-              <UploadButton
-                endpoint="imageUploader"
-                onClientUploadComplete={onUploadComplete}
-                onUploadError={handleUploadError}
-              />
+              <Button onClick={() => {
+                if (height === "h-32") {
+                  profileFileInputRef.current?.click();
+                } else {
+                  identityFileInputRef.current?.click();
+                }
+              }}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Image
+              </Button>
             </div>
           </div>
         )}
@@ -296,7 +312,7 @@ export default function AddDeliveryman() {
               <ImageUpload
                 label="Image de Profil"
                 image={imageProfile}
-                onUploadComplete={handleProfileUploadComplete}
+                onUploadComplete={handleProfileFileUpload}
                 uploadText="Glisser-déposer ou cliquer pour télécharger l'image de profil"
               />
 
@@ -450,7 +466,7 @@ export default function AddDeliveryman() {
                 <ImageUpload
                   label="Image d'Identité"
                   image={imageIdentifier}
-                  onUploadComplete={handleIdentityUploadComplete}
+                  onUploadComplete={handleIdentityFileUpload}
                   uploadText="Glisser-déposer ou cliquer pour télécharger le document d'identité"
                   height="h-48"
                 />
@@ -600,6 +616,22 @@ export default function AddDeliveryman() {
           </div>
         </form>
       </Form>
+      
+      {/* Hidden file inputs */}
+      <input
+        ref={profileFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleProfileFileUpload}
+        className="hidden"
+      />
+      <input
+        ref={identityFileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleIdentityFileUpload}
+        className="hidden"
+      />
     </div>
   );
 }

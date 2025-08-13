@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import {
   Clock,
   DollarSign,
   ImagePlus,
+  Upload,
   Trash2,
   GripVertical,
   Loader2,
@@ -37,7 +38,7 @@ import {
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
 import { Food, Category, Variation, Addon } from "@/lib/types";
 import { useCategories } from "@/lib/hooks/useCategories";
 import { useFoods } from "@/lib/hooks/useFoods";
@@ -72,6 +73,7 @@ export function EditFoodModal({
   const [newAddon, setNewAddon] = useState({ name: "", price: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [initialLoad, setInitialLoad] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     categories,
@@ -244,6 +246,21 @@ export function EditFoodModal({
       onSuccess?.();
     } else {
       toast.error(result.error || "Erreur lors de la modification du plat");
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setImageUrl(uploadedUrl);
+      toast.success("Image téléchargée avec succès !");
+    } catch (error) {
+      toast.error(
+        `Erreur de téléchargement : ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     }
   };
 
@@ -635,19 +652,16 @@ export function EditFoodModal({
                     <p className="text-sm text-gray-500 mb-4">
                       Téléchargez une nouvelle image
                     </p>
-                    <UploadButton
-                      endpoint="imageUploader"
-                      onClientUploadComplete={(res) => {
-                        if (res?.[0]?.ufsUrl) {
-                          setImageUrl(res[0].ufsUrl);
-                          toast.success("Image téléchargée avec succès !");
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        toast.error(
-                          `Erreur de téléchargement : ${error.message}`,
-                        );
-                      }}
+                    <Button onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Image
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
                     />
                   </div>
                 ) : (

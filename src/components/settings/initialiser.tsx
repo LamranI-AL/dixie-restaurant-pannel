@@ -1,7 +1,7 @@
 /** @format */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +53,7 @@ import {
   Globe,
   Save,
   UploadCloud,
+  Upload,
   Clock,
   Package,
   Settings,
@@ -83,7 +84,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Restaurant, OpeningHours, DeliveryOption } from "@/lib/types";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
 // import { useToast } from "@/lib/hooks/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import { useRestaurants } from "@/lib/hooks/useRestaurant"; // Import du hook
@@ -183,6 +184,7 @@ export function RestaurantManagement({
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
@@ -443,6 +445,38 @@ export function RestaurantManagement({
       });
     } finally {
       setDeleteDialogOpen(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      const progressInterval = simulateProgress(0, 90, "Téléchargement de l'image...");
+      
+      const uploadedUrl = await uploadImage(file);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      setLogoUrl(uploadedUrl);
+      toast({
+        title: "Logo téléchargé",
+        description: "Votre logo a été téléchargé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur lors du téléchargement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
@@ -822,30 +856,16 @@ export function RestaurantManagement({
                               </div>
                             ) : (
                               <div className="bg-gradient-to-b from-orange-950 border-t-yellow-800 rounded-md p-4 border border-gray-200">
-                                <UploadButton
-                                  endpoint="imageUploader"
-                                  onClientUploadComplete={(res) => {
-                                    if (res && res[0] && res[0].url) {
-                                      setLogoUrl(res[0].url);
-                                      toast({
-                                        title: "Logo téléchargé",
-                                        description:
-                                          "Votre logo a été téléchargé avec succès",
-                                      });
-                                    }
-                                  }}
-                                  onUploadProgress={(progress) => {
-                                    setUploadProgress(progress);
-                                  }}
-                                  onUploadError={(error) => {
-                                    toast({
-                                      title: "Erreur",
-                                      description: error.message,
-                                      variant: "destructive",
-                                    });
-                                    setIsUploading(false);
-                                    setUploadProgress(0);
-                                  }}
+                                <Button onClick={() => fileInputRef.current?.click()}>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload Image
+                                </Button>
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleFileUpload}
+                                  className="hidden"
                                 />
                               </div>
                             )}

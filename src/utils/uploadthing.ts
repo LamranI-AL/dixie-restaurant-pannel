@@ -1,12 +1,13 @@
 /** @format */
 
-import { OurFileRouter } from "@/app/api/uploadthing/core";
-import {
-  generateUploadButton,
-  generateUploadDropzone,
-} from "@uploadthing/react";
-
-// import type { OurFileRouter } from "~/app/api/uploadthing/core";
-
-export const UploadButton = generateUploadButton<OurFileRouter>();
-export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
+// Migrated from uploadthing to upload-real.ts for direct base64 and Firebase uploads
+export { 
+  uploadImageReal as uploadImage,
+  deleteImageReal as deleteImage,
+  createImagePreview,
+  validateImageFile,
+  convertImageToBase64,
+  compressImage,
+  getUploadedImagesMetadata,
+  clearImageCache 
+} from "@/lib/upload-real";

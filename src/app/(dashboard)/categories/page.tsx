@@ -1,7 +1,7 @@
 /** @format */
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -26,7 +26,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
+import { Upload } from "lucide-react";
 import { EditCategoryForm } from "@/components/dashboard/categories/EditeCategoryForm";
 import { DeleteCategoryConfirmation } from "@/components/dashboard/categories/DeleteCategorieForm";
 import { useCategories } from "@/lib/hooks/useCategories"; // Import du hook
@@ -52,6 +53,24 @@ export default function CuisinesPage() {
   const [imageCuisine, setImageCuisine] = useState("");
   const [telechargementImage, setTelechargementImage] = useState(false);
   const [chargementFormulaire, setChargementFormulaire] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gestionnaire d'upload d'image
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setTelechargementImage(true);
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setImageCuisine(uploadedUrl);
+      toast.success("Image téléchargée avec succès !");
+    } catch (error) {
+      toast.error(`Erreur de téléchargement : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setTelechargementImage(false);
+    }
+  };
 
   // Récupérer les cuisines au montage du composant
   useEffect(() => {
@@ -218,25 +237,33 @@ export default function CuisinesPage() {
                 <div className="space-y-2">
                   <Label htmlFor="image">Image de la catégorie</Label>
                   <div className="bg-gradient-to-b from-slate-600 to-slate-400 rounded-md p-2">
-                    <UploadButton
-                      endpoint="imageUploader"
-                      onClientUploadComplete={(res) => {
-                        if (res && res.length > 0 && res[0].ufsUrl) {
-                          setImageCuisine(res[0].ufsUrl);
-                          toast.success("Image téléchargée avec succès !");
-                          setTelechargementImage(false);
-                        }
-                      }}
-                      onUploadBegin={() => {
-                        setTelechargementImage(true);
-                      }}
-                      onUploadError={(error: Error) => {
-                        toast.error(
-                          `Erreur de téléchargement : ${error.message}`,
-                        );
-                        setTelechargementImage(false);
-                      }}
+                    <Button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={telechargementImage}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {telechargementImage ? "Téléchargement..." : "Choisir une image"}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
                     />
+                    {imageCuisine && (
+                      <div className="mt-2">
+                        <Image 
+                          src={imageCuisine} 
+                          alt="Aperçu" 
+                          width={100} 
+                          height={100} 
+                          className="rounded-md object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Aperçu de l'image */}

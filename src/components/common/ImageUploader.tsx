@@ -1,9 +1,9 @@
 /** @format */
 
 // client/src/components/common/ImageUploader.tsx
-import { useState } from "react";
-import { UploadDropzone } from "@/utils/uploadthing";
-import { ImagePlus, RefreshCw, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { uploadImageReal } from "@/lib/upload-real";
+import { ImagePlus, RefreshCw, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -28,11 +28,33 @@ const ImageUploader = ({
 }: ImageUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRemoveImage = () => {
     if (onImageRemove) {
       onImageRemove();
     }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const uploadedUrl = await uploadImageReal(file);
+      onUploadComplete(uploadedUrl);
+      setIsUploading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'upload');
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -58,7 +80,7 @@ const ImageUploader = ({
               variant="outline"
               size="icon"
               className="h-7 w-7 bg-white/80 backdrop-blur-sm hover:bg-white"
-              onClick={() => setIsUploading(true)}>
+              onClick={handleUploadClick}>
               <RefreshCw className="h-4 w-4" />
             </Button>
             {onImageRemove && (
@@ -77,22 +99,9 @@ const ImageUploader = ({
         <div
           className={`${
             aspectRatio === "square" ? "aspect-square" : "aspect-[16/9]"
-          } relative bg-gray-50`}>
-          <UploadDropzone
-            endpoint="imageUploader"
-            onClientUploadComplete={(res) => {
-              if (res && res.length > 0) {
-                onUploadComplete(res[0].url);
-                setIsUploading(false);
-                setError(null);
-              }
-            }}
-            onUploadError={(err) => {
-              setError(err.message);
-              setIsUploading(false);
-            }}
-            config={{ mode: "auto" }}
-          />
+          } relative bg-gray-50 flex flex-col items-center justify-center p-4`}>
+          <Upload className="h-8 w-8 text-blue-500 animate-pulse mb-2" />
+          <p className="text-sm text-gray-600">Upload en cours...</p>
           {error && (
             <div className="mt-2 text-sm text-red-600 text-center px-3">
               {error}
@@ -104,12 +113,19 @@ const ImageUploader = ({
           className={`${
             aspectRatio === "square" ? "aspect-square" : "aspect-[16/9]"
           } relative bg-gray-50 flex flex-col items-center justify-center p-4 cursor-pointer`}
-          onClick={() => setIsUploading(true)}>
+          onClick={handleUploadClick}>
           <ImagePlus className="h-10 w-10 text-gray-400 mb-2" />
           <p className="text-sm text-gray-500 text-center">{label}</p>
           <p className="text-xs text-gray-400 mt-1">Max size: {maxSize}MB</p>
         </div>
       )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
     </div>
   );
 };
