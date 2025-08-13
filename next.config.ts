@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       "via.placeholder.com",
-      "utfs.io",
+      "utfs.io", 
       "images.pexels.com",
       "cdn.pixabay.com",
       "images.unsplash.com",
@@ -22,9 +22,24 @@ const nextConfig: NextConfig = {
       "img.icons8.com",
       "o6lr91qesq.ufs.sh",
       "f3e8wywyb5.ufs.sh",
-      "*",
       "o6lr91qesq.ufs.rocks",
+      "firebasestorage.googleapis.com",
     ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.firebasestorage.app',
+        pathname: '/**',
+      },
+    ],
+    // Permettre les images base64
+    unoptimized: false,
+    dangerouslyAllowSVG: true,
   },
 };
 

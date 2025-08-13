@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import Image from "next/image";
+import CustomImage from "@/components/ui/CustomImage";
 import { ImageIcon, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { uploadImage } from "@/utils/uploadthing";
@@ -99,7 +99,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
         {value1 ? (
           <div className="relative aspect-video w-full overflow-hidden rounded-md">
-            <Image
+            <CustomImage
               src={value1}
               alt="Uploaded image"
               fill

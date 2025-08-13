@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 import { uploadImageReal } from "@/lib/upload-real";
 import { ImagePlus, RefreshCw, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import CustomImage from "@/components/ui/CustomImage";
 
 interface ImageUploaderProps {
   imageUrl: string | null;
@@ -66,7 +66,7 @@ const ImageUploader = ({
             className={`${
               aspectRatio === "square" ? "aspect-square" : "aspect-[16/9]"
             } relative bg-gray-50 overflow-hidden`}>
-            <Image
+            <CustomImage
               width={500}
               height={500}
               src={imageUrl}
