@@ -1,7 +1,7 @@
 /** @format */
 
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -17,9 +17,6 @@ import { Loader2, Search } from "lucide-react";
 import { Cuisine } from "@/lib/types";
 import { useAuth } from "@/providers/auth-provider";
 import Image from "next/image";
-// import { getAllCuisines } from "@/actions/cuisine";
-// import { EditCuisineForm } from "@/components/dashboard/cuisines/EditCuisineForm";
-// import { DeleteCuisineConfirmation } from "@/components/dashboard/cuisines/DeleteCuisineForm";
 import { toast, Toaster } from "sonner";
 import {
   Popover,
@@ -29,55 +26,71 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
-// import { addCuisine } from "@/actions/cuisine";
-import { UploadButton } from "@/utils/uploadthing";
-import { addCategory, getAllCategories } from "@/actions/category";
+import { uploadImage } from "@/utils/uploadthing";
+import { Upload } from "lucide-react";
 import { EditCategoryForm } from "@/components/dashboard/categories/EditeCategoryForm";
 import { DeleteCategoryConfirmation } from "@/components/dashboard/categories/DeleteCategorieForm";
+import { useCategories } from "@/lib/hooks/useCategories"; // Import du hook
 
 export default function CuisinesPage() {
   const [recherche, setRecherche] = useState("");
   const { currentUser } = useAuth();
-  const [cuisines, setCuisines] = useState<Cuisine[]>([]);
-  const [chargement, setChargement] = useState(true);
-  const [chargementFormulaire, setChargementFormulaire] = useState(false);
   const [popoverOuvert, setPopoverOuvert] = useState(false);
+
+  // Utilisation du hook useCategories
+  const {
+    categories,
+    loading: chargement,
+    error,
+    addCategory,
+    getAllCategories,
+    clearError,
+  } = useCategories();
 
   // État du formulaire de nouvelle cuisine
   const [nomCuisine, setNomCuisine] = useState("");
   const [descriptionCuisine, setDescriptionCuisine] = useState("");
   const [imageCuisine, setImageCuisine] = useState("");
   const [telechargementImage, setTelechargementImage] = useState(false);
+  const [chargementFormulaire, setChargementFormulaire] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Récupérer les cuisines
-  const recupererCuisines = async () => {
-    setChargement(true);
+  // Gestionnaire d'upload d'image
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setTelechargementImage(true);
     try {
-      const { success, categories } = await getAllCategories();
-      if (success) {
-        setCuisines(categories as Cuisine[]);
-        toast.success("Cuisines chargées avec succès");
-      } else {
-        toast.error("Erreur lors de la récupération des cuisines");
-      }
+      const uploadedUrl = await uploadImage(file);
+      setImageCuisine(uploadedUrl);
+      toast.success("Image téléchargée avec succès !");
     } catch (error) {
-      console.error("Erreur lors de la récupération des cuisines :", error);
-      toast.error("Échec du chargement des cuisines");
+      toast.error(`Erreur de téléchargement : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
-      setChargement(false);
+      setTelechargementImage(false);
     }
   };
 
+  // Récupérer les cuisines au montage du composant
   useEffect(() => {
-    recupererCuisines();
-  }, []);
+    getAllCategories();
+  }, [getAllCategories]);
+
+  // Gestion des erreurs du hook
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   // Gérer l'ajout d'une nouvelle cuisine
   const handleAjouterCuisine = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!nomCuisine.trim()) {
-      toast.error("Le nom de la cuisine est requis");
+      toast.error("Le nom de la catégorie est requis");
       return;
     }
 
@@ -94,7 +107,7 @@ export default function CuisinesPage() {
         userId: (await currentUser?.getIdToken()) || "",
         id: "",
         name: nomCuisine,
-        description: "test",
+        description: descriptionCuisine || "test",
         longDescription: "testmock",
         image: imageCuisine,
       });
@@ -107,13 +120,12 @@ export default function CuisinesPage() {
         setImageCuisine("");
         // Fermer le popover
         setPopoverOuvert(false);
-        // Actualiser les cuisines
-        recupererCuisines();
+        // Pas besoin de recharger manuellement, le hook gère la mise à jour automatique
       } else {
         toast.error(result.error || "Échec de l'ajout de la cuisine");
       }
     } catch (error) {
-      console.error("Erreur lors de l'ajout de la cuisine :", error);
+      console.error("Erreur lors de l'ajout de la catégorie :", error);
       toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setChargementFormulaire(false);
@@ -121,7 +133,7 @@ export default function CuisinesPage() {
   };
 
   // Filtrer les cuisines en fonction de la recherche
-  const cuisinesFiltrees = cuisines.filter((cuisine) =>
+  const cuisinesFiltrees = categories.filter((cuisine) =>
     cuisine.name.toLowerCase().includes(recherche.toLowerCase()),
   );
 
@@ -174,7 +186,7 @@ export default function CuisinesPage() {
               rx="1"
             />
           </svg>
-          <h2 className="text-2xl font-bold">Liste des Cuisines</h2>
+          <h2 className="text-2xl font-bold">Liste des Catégories</h2>
           <div className="ml-2 flex h-7 items-center justify-center rounded-full bg-blue-100 px-3 text-xs font-medium text-blue-500">
             {cuisinesFiltrees.length}
           </div>
@@ -185,7 +197,7 @@ export default function CuisinesPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Ex : Rechercher par nom de cuisine.."
+              placeholder="Ex : Rechercher par nom de catégories.."
               className="w-[240px] pl-8"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
@@ -217,33 +229,41 @@ export default function CuisinesPage() {
                     Ajouter une Nouvelle Cuisine
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Saisissez les détails de la nouvelle cuisine
+                    Saisissez les détails de la nouvelle catégorie
                   </p>
                 </div>
 
                 {/* Téléchargement d'image */}
                 <div className="space-y-2">
-                  <Label htmlFor="image">Image de la Cuisine</Label>
-                  <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-md p-2">
-                    <UploadButton
-                      endpoint="imageUploader"
-                      onClientUploadComplete={(res) => {
-                        if (res && res.length > 0 && res[0].ufsUrl) {
-                          setImageCuisine(res[0].ufsUrl);
-                          toast.success("Image téléchargée avec succès !");
-                          setTelechargementImage(false);
-                        }
-                      }}
-                      onUploadBegin={() => {
-                        setTelechargementImage(true);
-                      }}
-                      onUploadError={(error: Error) => {
-                        toast.error(
-                          `Erreur de téléchargement : ${error.message}`,
-                        );
-                        setTelechargementImage(false);
-                      }}
+                  <Label htmlFor="image">Image de la catégorie</Label>
+                  <div className="bg-gradient-to-b from-slate-600 to-slate-400 rounded-md p-2">
+                    <Button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={telechargementImage}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {telechargementImage ? "Téléchargement..." : "Choisir une image"}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
                     />
+                    {imageCuisine && (
+                      <div className="mt-2">
+                        <Image 
+                          src={imageCuisine} 
+                          alt="Aperçu" 
+                          width={100} 
+                          height={100} 
+                          className="rounded-md object-cover"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Aperçu de l'image */}
@@ -261,18 +281,18 @@ export default function CuisinesPage() {
 
                 {/* Nom de la Cuisine */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom de la Cuisine</Label>
+                  <Label htmlFor="name">Nom de la catégorie</Label>
                   <Input
                     id="name"
                     required
-                    placeholder="Saisissez le nom de la cuisine"
+                    placeholder="Saisissez le nom de la catégorie"
                     value={nomCuisine}
                     onChange={(e) => setNomCuisine(e.target.value)}
                   />
                 </div>
 
                 {/* Description de la Cuisine */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="description">Description (Optionnel)</Label>
                   <Textarea
                     id="description"
@@ -282,7 +302,7 @@ export default function CuisinesPage() {
                     className="resize-none"
                     rows={3}
                   />
-                </div>
+                </div> */}
 
                 {/* Bouton de Soumission */}
                 <Button
@@ -319,7 +339,7 @@ export default function CuisinesPage() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 text-center">N°</TableHead>
                   <TableHead>Image</TableHead>
-                  <TableHead>Nom de la Cuisine</TableHead>
+                  <TableHead>Nom de la Catégorie</TableHead>
                   <TableHead className="w-24 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -334,7 +354,7 @@ export default function CuisinesPage() {
                   </TableRow>
                 ) : (
                   cuisinesFiltrees.map((cuisine, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={cuisine.id || index}>
                       <TableCell className="text-center">{index + 1}</TableCell>
                       <TableCell>
                         <div className="h-12 w-12 rounded-md overflow-hidden">
@@ -371,46 +391,7 @@ export default function CuisinesPage() {
 
       {/* Pied de page */}
       <div className="flex justify-between items-center border-t pt-4 text-sm text-muted-foreground">
-        <div>© dixie.</div>
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Paramètres du restaurant
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            Profil
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line
-                x1="21"
-                y1="12"
-                x2="9"
-                y2="12"
-              />
-            </svg>
-          </Button>
-        </div>
+        <div>© Dixie.</div>
       </div>
     </div>
   );

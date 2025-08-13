@@ -115,7 +115,7 @@ export default function Login() {
           <div className="flex justify-center mb-4">
             <RestaurantLogo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl font-bold">DIXIE</CardTitle>
+          <CardTitle className="text-2xl font-bold">Dixie</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
             Log in to your restaurant admin account
           </p>
@@ -237,7 +237,6 @@ export default function Login() {
             </form>
           </Form>
         </CardContent>
-        
       </Card>
     </div>
   );

@@ -4,7 +4,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import UserFavoriteFoods from "@/components/food/UserFavoriteFoods";
+import UserFavoriteFoods from "@/components/dashboard/foods/UserFavoriteFoods";
 
 const FavoriteFoodsPage: React.FC = () => {
   const router = useRouter();

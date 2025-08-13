@@ -6,13 +6,13 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDu3tFrjlkzvegTcfcLkBfyrLmj1B8p18k",
-  authDomain: "dixie-latestdb.firebaseapp.com",
-  projectId: "dixie-latestdb",
-  storageBucket: "dixie-latestdb.firebasestorage.app",
-  messagingSenderId: "942778815273",
-  appId: "1:942778815273:web:6d0ff3b4ed8edee1461d38",
-  measurementId: "G-HQZV2WR7VW",
+   apiKey: "AIzaSyANMGorLu_XtnUtHkDxjBSCD1onMx7_rS4",
+  authDomain: "dixie-restaurant.firebaseapp.com",
+  projectId: "dixie-restaurant",
+  storageBucket: "dixie-restaurant.firebasestorage.app",
+  messagingSenderId: "630248879047",
+  appId: "1:630248879047:web:b84193c6241f52bb771fe2",
+  measurementId: "G-8X6QWRCJ93"
 };
 
 // Initialize Firebase

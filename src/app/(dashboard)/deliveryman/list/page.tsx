@@ -2,8 +2,7 @@
 
 "use client";
 
-import { getAllDeliverymen } from "@/actions/deliveryman";
-import { ActiveDeliverymenTable } from "@/components/dashboard/deliveryman/DeliverymenList"; // Assuming this component handles displaying the table
+import { ActiveDeliverymenTable } from "@/components/dashboard/deliveryman/DeliverymenList";
 import {
   Card,
   CardContent,
@@ -12,367 +11,260 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Deliveryman } from "@/lib/types"; // Assuming Deliveryman type is defined here
-import { Users, TrendingUp, AlertTriangle, Loader2 } from "lucide-react"; // Added Loader2 for spinner
-import React, { useEffect, useState } from "react";
-import { toast } from "sonner"; // Import toast for notifications
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Assuming you have an Alert component (e.g., from shadcn/ui)
-
-// You might want a skeleton component for better loading feel
-// import { CardSkeleton, TableSkeleton } from "@/components/ui/skeletons"; // Example skeleton components
+import { Button } from "@/components/ui/button";
+import { Deliveryman } from "@/lib/types";
+import {
+  Users,
+  TrendingUp,
+  AlertTriangle,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useDeliverymen } from "@/lib/hooks/useDeliverymen"; // Import du hook
 
 function ActiveDeliverymenPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deliverymen, setDeliverymen] = useState<Deliveryman[] | null>(null); // Initialize as null to distinguish between no data and loading
+  const { deliverymen, loading, error, getAllDeliverymen, clearError } =
+    useDeliverymen();
 
-  const fetchDeliverymen = async () => {
-    setLoading(true);
-    setError(null); // Clear previous errors before fetching
-    try {
-      const response = await getAllDeliverymen();
+  // Chargement initial des livreurs
+  useEffect(() => {
+    getAllDeliverymen();
+  }, [getAllDeliverymen]);
 
-      if (response.success) {
-        // Ensure the response structure matches Deliveryman[]
-        setDeliverymen(response.deliverymen as Deliveryman[]);
-        // Optionally show a success toast if data is loaded after an error or interaction
-        // toast.success("Données des livreurs chargées avec succès.");
-      } else {
-        // Handle API-specific errors
-        const errorMessage =
-          response.error ||
-          "Erreur inconnue lors de la récupération des livreurs.";
-        setError(errorMessage);
-        toast.error(`Erreur: ${errorMessage}`); // Show toast for API error
-      }
-    } catch (err: any) {
-      // Handle network errors or unexpected exceptions
-      const errorMessage =
-        "Erreur lors du chargement des données des livreurs.";
-      setError(errorMessage);
-      toast.error(`Erreur: ${errorMessage}`); // Show toast for catch error
-      console.error("Failed to fetch delivery items:", err);
-    } finally {
-      setLoading(false);
+  // Gestion des erreurs du hook
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
     }
+  }, [error, clearError]);
+
+  // Calcul des statistiques avec useMemo pour optimiser les performances
+  const statistics = useMemo(() => {
+    const total = deliverymen.length;
+    const active = deliverymen.filter((d) => d?.status === "active").length;
+    const suspended = deliverymen.filter(
+      (d) => d?.status === "suspended",
+    ).length;
+    const inactive = deliverymen.filter((d) => d?.status === "inactive").length;
+
+    return { total, active, suspended, inactive };
+  }, [deliverymen]);
+
+  // Filtrage des livreurs par statut avec useMemo
+  const filteredDeliverymen = useMemo(
+    () => ({
+      active: deliverymen.filter((d) => d?.status === "active"),
+      inactive: deliverymen.filter((d) => d?.status === "inactive"),
+      suspended: deliverymen.filter((d) => d?.status === "suspended"),
+    }),
+    [deliverymen],
+  );
+
+  // Fonction de rafraîchissement
+  const handleRefresh = () => {
+    getAllDeliverymen();
   };
 
-  useEffect(() => {
-    fetchDeliverymen();
-  }, []); // Fetch data only on mount
+  // Composant de carte de statistique réutilisable
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
+    bgColor,
+    iconColor,
+  }: {
+    title: string;
+    value: number;
+    icon: React.ComponentType<any>;
+    bgColor: string;
+    iconColor: string;
+  }) => (
+    <Card>
+      <CardContent className="flex items-center p-6">
+        <div className={`${bgColor} p-3 rounded-full mr-4`}>
+          <Icon className={`h-6 w-6 ${iconColor}`} />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
-  // Calculate statistics safely
-  const totalDeliverymen = deliverymen?.length || 0;
-  const activeDeliverymen =
-    deliverymen?.filter((d) => d?.status === "active").length || 0;
-  const suspendedDeliverymen =
-    deliverymen?.filter((d) => d?.status === "suspended").length || 0;
-  const inactiveDeliverymen =
-    deliverymen?.filter((d) => d?.status === "inactive").length || 0;
+  // Composant de contenu d'onglet réutilisable
+  const TabContent = ({
+    title,
+    description,
+    data,
+    emptyMessage,
+  }: {
+    title: string;
+    description: string;
+    data: Deliveryman[];
+    emptyMessage: string;
+  }) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {data.length > 0 ? (
+          <ActiveDeliverymenTable data={data} />
+        ) : (
+          <p className="text-center text-gray-500 py-8">{emptyMessage}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
 
-  // --- Conditional Rendering for Loading and Error States ---
-
-  // Show a full-page spinner on initial load if no data is present yet
-  if (loading && deliverymen === null) {
+  // Affichage du spinner de chargement initial
+  if (loading && deliverymen.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
-        {" "}
-        {/* Adjust height as needed */}
-        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />{" "}
-        {/* Use Loader2 for spinner */}
+        <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
         <p className="mt-4 text-lg text-gray-600">Chargement des livreurs...</p>
-        {/* Alternatively, use skeletons here for a better visual */}
-        {/* <div className="container mx-auto py-6"><CardSkeleton count={4} /><TableSkeleton /></div> */}
       </div>
     );
   }
 
-  // Show a persistent error message if fetching failed and no data is available
-  if (error && deliverymen === null) {
+  // Affichage d'erreur persistante
+  if (error && deliverymen.length === 0) {
     return (
       <div className="container mx-auto py-6">
         <Alert variant="destructive">
-          {" "}
-          {/* Use a destructive variant for errors */}
-          <AlertTriangle className="h-5 w-5" /> {/* Use AlertTriangle icon */}
+          <AlertTriangle className="h-5 w-5" />
           <AlertTitle>Erreur de chargement</AlertTitle>
           <AlertDescription>
-            {error} Impossible de charger les données des livreurs. Veuillez
-            réessayer.
-            <button
-              onClick={fetchDeliverymen}
-              className="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              disabled={loading} // Disable retry button while loading
-            >
+            {error} Impossible de charger les données des livreurs.
+            <Button
+              onClick={handleRefresh}
+              className="ml-2"
+              size="sm"
+              variant="outline"
+              disabled={loading}>
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin inline-block mr-1" />
-              ) : null}{" "}
-              {/* Spinner on button */}
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1" />
+              )}
               Réessayer
-            </button>
+            </Button>
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  // If data is loaded but the array is empty
-  if (!loading && deliverymen?.length === 0 && !error) {
-    return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Gestion des livreurs</h1>
-        </div>
-        {/* Display the stats cards even if empty */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Card for Total */}
-          <Card>
-            <CardContent className="flex items-center p-6">
-              <div className="bg-blue-100 p-3 rounded-full mr-4">
-                <Users className="h-6 w-6 text-blue-700" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Total livreurs
-                </p>
-                <p className="text-2xl font-bold">{totalDeliverymen}</p>
-              </div>
-            </CardContent>
-          </Card>
-          {/* ... other stat cards ... */}
-          <Card>
-            <CardContent className="flex items-center p-6">
-              <div className="bg-green-100 p-3 rounded-full mr-4">
-                <TrendingUp className="h-6 w-6 text-green-700" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Livreurs actifs
-                </p>
-                <p className="text-2xl font-bold">{activeDeliverymen}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center p-6">
-              <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                <AlertTriangle className="h-6 w-6 text-yellow-700" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Livreurs inactifs
-                </p>
-                <p className="text-2xl font-bold">{inactiveDeliverymen}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center p-6">
-              <div className="bg-red-100 p-3 rounded-full mr-4">
-                <AlertTriangle className="h-6 w-6 text-red-700" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Livreurs suspendus
-                </p>
-                <p className="text-2xl font-bold">{suspendedDeliverymen}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <p className="text-center text-gray-500 text-lg mt-8">
-          Aucun livreur trouvé pour le moment.
-        </p>
-      </div>
-    );
-  }
-
-  // --- Main Render when data is available ---
   return (
     <div className="container mx-auto py-6">
+      {/* En-tête avec bouton de rafraîchissement */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Gestion des livreurs</h1>
-        {/* Optional: Add a refresh button */}
-        <button
-          onClick={fetchDeliverymen}
+        <Button
+          onClick={handleRefresh}
           disabled={loading}
-          className={`flex items-center px-4 py-2 border rounded-md text-sm font-medium ${loading ? "opacity-50 cursor-not-allowed" : ""}`}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          variant="outline"
+          size="sm"
+          className="gap-2">
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Rafraîchir
-        </button>
+        </Button>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Cartes de statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Card for Total */}
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="bg-blue-100 p-3 rounded-full mr-4">
-              <Users className="h-6 w-6 text-blue-700" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Total livreurs
-              </p>
-              <p className="text-2xl font-bold">{totalDeliverymen}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card for Active */}
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="bg-green-100 p-3 rounded-full mr-4">
-              <TrendingUp className="h-6 w-6 text-green-700" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Livreurs actifs
-              </p>
-              <p className="text-2xl font-bold">{activeDeliverymen}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card for Inactive */}
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="bg-yellow-100 p-3 rounded-full mr-4">
-              <AlertTriangle className="h-6 w-6 text-yellow-700" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Livreurs inactifs
-              </p>
-              <p className="text-2xl font-bold">{inactiveDeliverymen}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card for Suspended */}
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="bg-red-100 p-3 rounded-full mr-4">
-              <AlertTriangle className="h-6 w-6 text-red-700" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Livreurs suspendus
-              </p>
-              <p className="text-2xl font-bold">{suspendedDeliverymen}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Total livreurs"
+          value={statistics.total}
+          icon={Users}
+          bgColor="bg-blue-100"
+          iconColor="text-blue-700"
+        />
+        <StatCard
+          title="Livreurs actifs"
+          value={statistics.active}
+          icon={TrendingUp}
+          bgColor="bg-green-100"
+          iconColor="text-green-700"
+        />
+        <StatCard
+          title="Livreurs inactifs"
+          value={statistics.inactive}
+          icon={AlertTriangle}
+          bgColor="bg-yellow-100"
+          iconColor="text-yellow-700"
+        />
+        <StatCard
+          title="Livreurs suspendus"
+          value={statistics.suspended}
+          icon={AlertTriangle}
+          bgColor="bg-red-100"
+          iconColor="text-red-700"
+        />
       </div>
 
-      {/* Tabs for filtering */}
+      {/* Onglets pour filtrer */}
       <Tabs
         defaultValue="tous"
         className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="tous">Tous les livreurs</TabsTrigger>
-          <TabsTrigger value="actifs">Actifs</TabsTrigger>
-          <TabsTrigger value="inactifs">Inactifs</TabsTrigger>
-          <TabsTrigger value="suspendus">Suspendus</TabsTrigger>
+          <TabsTrigger value="tous">
+            Tous les livreurs ({statistics.total})
+          </TabsTrigger>
+          <TabsTrigger value="actifs">Actifs ({statistics.active})</TabsTrigger>
+          <TabsTrigger value="inactifs">
+            Inactifs ({statistics.inactive})
+          </TabsTrigger>
+          <TabsTrigger value="suspendus">
+            Suspendus ({statistics.suspended})
+          </TabsTrigger>
         </TabsList>
 
-        {/* Tab Content for All Deliverymen */}
+        {/* Contenu des onglets */}
         <TabsContent value="tous">
-          <Card>
-            <CardHeader>
-              <CardTitle>Liste de tous les livreurs</CardTitle>
-              <CardDescription>
-                Gérez tous les livreurs approuvés sur la plateforme.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Show table if data exists, otherwise show "No data" message */}
-              {deliverymen && deliverymen.length > 0 ? (
-                <ActiveDeliverymenTable data={deliverymen} />
-              ) : (
-                // This case is technically covered by the "no data" full page return,
-                // but good defensive coding to have it here too if the list becomes empty after filtering,
-                // although this specific tab is for "all".
-                <p className="text-center text-gray-500">
-                  Aucun livreur trouvé.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <TabContent
+            title="Liste de tous les livreurs"
+            description="Gérez tous les livreurs approuvés sur la plateforme."
+            data={deliverymen}
+            emptyMessage="Aucun livreur trouvé. Créez votre premier livreur !"
+          />
         </TabsContent>
 
-        {/* Tab Content for Active Deliverymen */}
         <TabsContent value="actifs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Livreurs actifs</CardTitle>
-              <CardDescription>
-                Liste des livreurs actifs qui peuvent effectuer des livraisons.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Filter and show table */}
-              {deliverymen && activeDeliverymen > 0 ? (
-                <ActiveDeliverymenTable
-                  data={deliverymen.filter((d) => d?.status === "active")}
-                />
-              ) : (
-                <p className="text-center text-gray-500">
-                  Aucun livreur actif trouvé.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <TabContent
+            title="Livreurs actifs"
+            description="Liste des livreurs actifs qui peuvent effectuer des livraisons."
+            data={filteredDeliverymen.active}
+            emptyMessage="Aucun livreur actif trouvé."
+          />
         </TabsContent>
 
-        {/* Tab Content for Inactive Deliverymen */}
         <TabsContent value="inactifs">
-          <Card>
-            <CardHeader>
-              <CardTitle>Livreurs inactifs</CardTitle>
-              <CardDescription>
-                Liste des livreurs inactifs qui ne sont pas en service
-                actuellement.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Filter and show table */}
-              {deliverymen && inactiveDeliverymen > 0 ? (
-                <ActiveDeliverymenTable
-                  data={deliverymen.filter((d) => d?.status === "inactive")}
-                />
-              ) : (
-                <p className="text-center text-gray-500">
-                  Aucun livreur inactif trouvé.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <TabContent
+            title="Livreurs inactifs"
+            description="Liste des livreurs inactifs qui ne sont pas en service actuellement."
+            data={filteredDeliverymen.inactive}
+            emptyMessage="Aucun livreur inactif trouvé."
+          />
         </TabsContent>
 
-        {/* Tab Content for Suspended Deliverymen */}
         <TabsContent value="suspendus">
-          <Card>
-            <CardHeader>
-              <CardTitle>Livreurs suspendus</CardTitle>
-              <CardDescription>
-                Liste des livreurs suspendus qui ne peuvent pas accéder à la
-                plateforme.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {/* Filter and show table */}
-              {deliverymen && suspendedDeliverymen > 0 ? (
-                <ActiveDeliverymenTable
-                  data={deliverymen.filter((d) => d?.status === "suspended")}
-                />
-              ) : (
-                <p className="text-center text-gray-500">
-                  Aucun livreur suspendu trouvé.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <TabContent
+            title="Livreurs suspendus"
+            description="Liste des livreurs suspendus qui ne peuvent pas accéder à la plateforme."
+            data={filteredDeliverymen.suspended}
+            emptyMessage="Aucun livreur suspendu trouvé."
+          />
         </TabsContent>
       </Tabs>
     </div>

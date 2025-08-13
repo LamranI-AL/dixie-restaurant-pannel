@@ -4,10 +4,10 @@
 
 import React, { useCallback, useState } from "react";
 import Image from "next/image";
-import { useDropzone } from "@uploadthing/react";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
+import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
   onChange: (url: any) => Promise<string | null>;
@@ -25,65 +25,77 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [value1, setValue] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
-  const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      if (disabled) return;
+  const handleFileUpload = async (file: File) => {
+    if (disabled) return;
 
-      const file = acceptedFiles[0];
+    if (!file.type.startsWith("image/")) {
+      setError("Only image files are allowed");
+      return;
+    }
 
-      if (!file) {
-        setError("No file selected");
-        return;
-      }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      return;
+    }
 
-      // Check if file is an image
-      if (!file.type.startsWith("image/")) {
-        setError("Only image files are allowed");
-        return;
-      }
+    setError(null);
+    setIsUploading(true);
 
-      // Check file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("File size must be less than 5MB");
-        return;
-      }
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setValue(uploadedUrl);
+      await onChange(uploadedUrl);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError("Failed to upload file");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-      setError(null);
-      setIsUploading(true);
-
-      try {
-        await onChange("file");
-        // setValue(file)
-      } catch (err) {
-        console.error("Upload error:", err);
-        setError("Failed to upload file");
-      } finally {
-        setIsUploading(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragActive(false);
+      
+      const files = Array.from(e.dataTransfer.files);
+      if (files[0]) {
+        handleFileUpload(files[0]);
       }
     },
-    [onChange, disabled],
+    [disabled],
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".png", ".jpg", ".jpeg", ".webp"],
-    },
-    maxFiles: 1,
-    disabled: isUploading || disabled,
-  });
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
 
   return (
     <div className={cn("w-full", className)}>
       <div
-        {...getRootProps()}
+        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragActive(true);
+        }}
+        onDragLeave={() => setIsDragActive(false)}
         className={cn(
           "border-2 border-dashed rounded-lg p-4 cursor-pointer transition-colors",
           isDragActive ? "border-primary bg-primary/10" : "border-gray-300",
           (isUploading || disabled) && "opacity-50 cursor-not-allowed",
         )}>
-        <input {...getInputProps()} />
+        <input 
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="file-upload"
+        />
 
         {value1 ? (
           <div className="relative aspect-video w-full overflow-hidden rounded-md">
@@ -103,25 +115,22 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               </>
             ) : (
               <>
-                {/* <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
+                <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
                 <p className="text-sm font-medium">
                   Drag & drop or click to upload
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   PNG, JPG, WEBP up to 5MB
-                </p> */}
-                <UploadButton
-                  endpoint="imageUploader"
-                  onClientUploadComplete={(res) => {
-                    //   onChange(res[0].ufsUrl as any);
-                    setValue(res[0].ufsUrl as any);
-                    alert("is ok");
-                  }}
-                  onUploadError={(error: Error) => {
-                    setError(error.message);
-                    alert(error);
-                  }}
-                />
+                </p>
+                <Button 
+                  type="button"
+                  onClick={() => document.getElementById('file-upload')?.click()}
+                  className="mt-2"
+                  disabled={isUploading || disabled}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Select Image
+                </Button>
               </>
             )}
           </div>

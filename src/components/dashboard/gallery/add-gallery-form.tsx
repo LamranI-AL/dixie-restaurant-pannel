@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { getAllGalleryItems } from "@/actions/restaurantGallery";
 import { restaurantGallery } from "@/lib/types";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ImageIcon, Loader2, Plus } from "lucide-react";
+import { ImageIcon, Loader2, Plus, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
 
 // Define predefined categories
 const GALLERY_CATEGORIES = [
@@ -72,6 +72,7 @@ export const RestaurantGallery = () => {
   // Form states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUpload, setImage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -114,6 +115,21 @@ export const RestaurantGallery = () => {
   useEffect(() => {
     fetchGalleryItems();
   }, []);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setImage(uploadedUrl);
+      form.setValue("image", uploadedUrl);
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    }
+  };
 
   // When dialog closes, refresh gallery
   useEffect(() => {
@@ -221,18 +237,16 @@ export const RestaurantGallery = () => {
                             <p className="text-xs text-gray-500 mt-1">
                               PNG, JPG, WEBP up to 5MB
                             </p>
-                            <UploadButton
-                              endpoint="imageUploader"
-                              onClientUploadComplete={(res) => {
-                                console.log(res[0].ufsUrl! as any);
-                                setImage(res[0].ufsUrl!);
-                                form.setValue("image", res[0].ufsUrl!);
-                                toast.success("Image uploaded successfully!");
-                              }}
-                              onUploadError={(error: Error) => {
-                                console.log(error.message);
-                                toast.error(error.message);
-                              }}
+                            <Button onClick={() => fileInputRef.current?.click()}>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Image
+                            </Button>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
                             />
                           </div>
                         </FormControl>

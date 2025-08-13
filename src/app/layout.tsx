@@ -19,16 +19,16 @@ const geistSans = Geist({
 });
 
 export const metadata = {
-  title: "Dixie - Admin pannel",
+  title: "dixie - Admin pannel",
   description: "admin pannel for dixie",
   keywords:
-    "poulet frit, livraison poulet, chicken delivery, Dixie, restaurant poulet, burger poulet, grillades poulet, poulet croustillant",
+    "poulet frit, livraison poulet, chicken delivery, dixie, restaurant , burger poulet, grillades poulet, poulet croustillant",
   // Configuration pour le favicon
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/DixieLogo.png", sizes: "16x16", type: "image/png" },
-      { url: "/DixieLogo.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo.png", sizes: "16x16", type: "image/png" },
+      { url: "/logo.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [
       {
@@ -47,28 +47,28 @@ export const metadata = {
   },
   manifest: "/favicon/site.webmanifest",
   openGraph: {
-    title: "Dixie - Spécialiste du Poulet",
+    title: "dixie - Spécialiste du Poulet",
     description:
       "Découvrez nos recettes exclusives de poulet frit, grillé et nos délicieux burgers. Livraison rapide à domicile ou à emporter.",
     type: "website",
     locale: "fr_FR",
     url: "https://www.dixie.com",
-    siteName: "Dixie Chicken",
+    siteName: "dixie Chicken",
     images: [
       {
-        url: "/DixieLogo.jpg",
+        url: "/dixie.png",
         width: 1200,
         height: 630,
-        alt: "Délicieux plats de poulet Dixie",
+        alt: "Délicieux plats de poulet dixie",
       },
     ], //
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dixie Chicken & Grill - Le Meilleur Poulet Livré Chez Vous",
+    title: "dixie Chicken & Grill - Le Meilleur Poulet Livré Chez Vous",
     description:
       "Spécialiste du poulet frit, grillé et des burgers de poulet. Livraison rapide et fraîcheur garantie.",
-    images: ["/DixieLogo.png"],
+    images: ["/logo.png"],
   },
   alternates: {
     canonical: "https://www.dixie.ma",
@@ -83,12 +83,12 @@ export const metadata = {
       "max-snippet": -1,
     },
   },
-  applicationName: "Dixie admin",
-  publisher: "Dixie alaoui",
+  applicationName: "dixie admin",
+  publisher: "othmane alaoui",
   viewport: "width=device-width, initial-scale=1",
   colorScheme: "light",
   creator: "othmane lamrani alaoui",
-  authors: [{ name: "Dixie", url: "https://www.dixie.ma" }],
+  authors: [{ name: "dixie", url: "https://www.dixie.ma" }],
   formatDetection: {
     telephone: true,
     email: true,

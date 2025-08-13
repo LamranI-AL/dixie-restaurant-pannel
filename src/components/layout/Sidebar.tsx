@@ -5,24 +5,16 @@ import { useLocation } from "wouter";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
-  ShoppingBag,
-  BadgePercent,
-  Receipt,
-  PlusCircle,
-  ListOrdered,
   ClipboardList,
-  CalendarClock,
   FolderTree,
   ChefHat,
-  Settings2,
-  BellRing,
-  ChevronDown,
+  UserPlus,
   Truck,
   PersonStanding,
-  Users,
-  UserPlus,
-  Store,
-  Megaphone,
+  Settings2,
+  ChevronDown,
+  User,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RestaurantLogo from "@/components/common/RestaurantLogo";
@@ -48,7 +40,7 @@ const SidebarItem = ({
   return (
     <div
       className={cn(
-        "sidebar-item flex items-center px-4 py-3 text-sm font-medium cursor-pointer transition-all duration-200 rounded-lg mx-2 my-1",
+        "sidebar-item flex items-center px-3 py-2 text-sm font-medium cursor-pointer transition-all duration-200 rounded-lg mx-2 my-0.5",
         isActive
           ? "active-nav bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-900 shadow-lg shadow-amber-500/20"
           : "hover:bg-slate-800/70 text-slate-300 hover:text-yellow-100",
@@ -59,12 +51,12 @@ const SidebarItem = ({
         className="flex items-center w-full">
         <Icon
           className={cn(
-            "h-5 w-5 mr-3",
+            "h-4 w-4 mr-2.5",
             isActive ? "text-slate-900" : "text-yellow-500",
           )}
         />
-        {label}
-        {hasSubMenu && <ChevronDown className="ml-auto h-4 w-4" />}
+        <span className="text-xs">{label}</span>
+        {hasSubMenu && <ChevronDown className="ml-auto h-3 w-3" />}
       </Link>
     </div>
   );
@@ -77,7 +69,7 @@ interface SidebarSectionProps {
 
 const SidebarSection = ({ title, children }: SidebarSectionProps) => (
   <>
-    <div className="text-xs font-bold text-yellow-500 px-4 py-2 mt-4 mb-2 uppercase tracking-wider">
+    <div className="text-xs font-bold text-yellow-500 px-3 py-1.5 mt-3 mb-1 uppercase tracking-wider">
       {title}
     </div>
     {children}
@@ -117,7 +109,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   }: SubMenuItemProps) => (
     <div
       className={cn(
-        "flex items-center pl-12 py-2.5 text-sm cursor-pointer transition-all duration-200 mx-2 rounded-lg",
+        "flex items-center pl-8 py-1.5 text-xs cursor-pointer transition-all duration-200 mx-2 rounded-lg",
         isActive
           ? "bg-slate-800/80 text-yellow-400"
           : "text-slate-400 hover:bg-slate-800/50 hover:text-yellow-200",
@@ -125,7 +117,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       <Link
         href={href}
         className="w-full flex items-center">
-        <Icon className="h-4 w-4 mr-2 text-yellow-500/80" />
+        <Icon className="h-3 w-3 mr-2 text-yellow-500/80" />
         {label}
       </Link>
     </div>
@@ -134,21 +126,23 @@ export default function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 w-64 flex-shrink-0 transition-all duration-300 z-40 h-screen shadow-xl border-r border-yellow-900/20",
-        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-64",
+        "bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 w-52 flex-shrink-0 transition-all duration-300 z-40 h-screen shadow-xl border-r border-yellow-900/20",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-52",
         "fixed md:static",
       )}>
-      <div className="flex items-center px-6 py-5 border-b border-yellow-900/30 bg-slate-950">
-        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 rounded-lg shadow-md p-2 flex items-center justify-center">
-          <RestaurantLogo className="w-8 h-8" />
+      {/* En-tête compact */}
+      <div className="flex items-center px-4 py-3 border-b border-yellow-900/30 bg-slate-950">
+        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 rounded-lg shadow-md p-1.5 flex items-center justify-center">
+          <RestaurantLogo className="w-6 h-6" />
         </div>
-        <h1 className="text-xl font-bold ml-3 text-white">
-          <span className="text-yellow-400">Di</span>xie
+        <h1 className="text-lg font-bold ml-2.5 text-white">
+          <span className="text-yellow-400">D</span>ixie  
         </h1>
       </div>
 
-      <div className="py-3 overflow-y-auto h-[calc(100vh-72px)] custom-scrollbar px-2">
-        <SidebarSection title="Navigation Principale">
+      <div className="py-2 overflow-y-auto h-[calc(100vh-60px)] custom-scrollbar px-1">
+        {/* Navigation Principale */}
+        <SidebarSection title="Principal">
           <SidebarItem
             href="/dashboard"
             icon={LayoutDashboard}
@@ -156,145 +150,71 @@ export default function Sidebar({ isOpen }: SidebarProps) {
             isActive={location === "/dashboard" || location === "/"}
           />
           <SidebarItem
-            href="/point-of-sale"
-            icon={ShoppingBag}
-            label="Point de Vente"
-            isActive={location === "/point-of-sale"}
-          />
-        </SidebarSection>
-        <SidebarSection title="Gestion des Commandes">
-          <SidebarItem
             href="/orders"
             icon={ClipboardList}
             label="Commandes"
             isActive={location === "/orders"}
           />
           <SidebarItem
-            href="/subscriptions"
-            icon={CalendarClock}
-            label="Abonnements"
-            isActive={location === "/subscriptions"}
+            href="/clients"
+            icon={User}
+            label="Utilisateurs"
+            isActive={location === "/clients"}
           />
         </SidebarSection>
 
-        <SidebarSection title="Gestion des Plats">
+        {/* Gestion des Plats */}
+        <SidebarSection title="Menu">
           <SidebarItem
             href="/categories"
             icon={FolderTree}
-            label="Cuisines"
+            label="Catégories"
             isActive={location === "/categories"}
           />
           <SidebarItem
             href="/foods"
             icon={ChefHat}
             label="Plats"
-            hasSubMenu
-            isActive={location.startsWith("/foods")}
-            onClick={() => toggleExpanded("foods")}
+            isActive={location === "/foods"}
           />
-          {expanded.foods && (
-            <div className="bg-slate-900/50 py-2 my-1 rounded-lg">
-              <SubMenuItem
-                href="/foods/add-new"
-                icon={PlusCircle}
-                label="Ajouter un Plat"
-                isActive={location === "/foods/add-new"}
-              />
-              <SubMenuItem
-                href="/foods"
-                icon={ListOrdered}
-                label="Liste des Plats"
-                isActive={location === "/foods" && !location.includes("/add")}
-              />
-            </div>
-          )}
-          <SidebarItem
-            href="/fav"
-            icon={FolderTree}
-            label="Favorites"
-            isActive={location === "/fav"}
-          />
+          {/* <SidebarItem
+            href="/trending-foods"
+            icon={TrendingUp}
+            label="Plats Tendances"
+            isActive={location === "/trending-foods"}
+          /> */}
         </SidebarSection>
-        <SidebarSection title="Gestion des Livraisons">
+
+        {/* Livraisons */}
+        <SidebarSection title="Livraisons">
           <SidebarItem
             href="/deliveryman/add"
             icon={UserPlus}
-            label="Ajouter un Livreur"
-            isActive={location === "/delivery/add"}
+            label="Ajouter Livreur"
+            isActive={location === "/deliveryman/add"}
           />
-
           <SidebarItem
             href="/deliveryman/list"
             icon={Truck}
-            label="Liste des Livreurs"
-            isActive={location === "/delivery"}
+            label="Liste Livreurs"
+            isActive={location === "/deliveryman/list"}
           />
           <SidebarItem
             href="/deliveryman/pending-approval-list"
             icon={PersonStanding}
-            label="Livreurs à approuver"
-            isActive={location === "/pending-approval-list"}
+            label="À Approuver"
+            isActive={location === "/deliveryman/pending-approval-list"}
           />
         </SidebarSection>
 
-        <SidebarSection title="Promotions">
-          <SidebarItem
-            href="/campaigns"
-            icon={Megaphone}
-            label="Campagnes"
-            hasSubMenu
-            isActive={location.startsWith("/campaigns")}
-          />
-          <SidebarItem
-            href="/coupons"
-            icon={BadgePercent}
-            label="Coupons"
-            isActive={location.startsWith("/coupons")}
-          />
-        </SidebarSection>
-
-        <SidebarSection title="Gestion de l'Entreprise">
+        {/* Paramètres */}
+        <SidebarSection title="Système">
           <SidebarItem
             href="/settings/edite"
             icon={Settings2}
-            label="Configuration du Restaurant"
-            isActive={location === "/settings"}
+            label="Réglages"
+            isActive={location === "/settings/edite"}
           />
-          <SidebarItem
-            href="/notifications"
-            icon={BellRing}
-            label="Paramètres de Notification"
-            isActive={location === "/notifications"}
-          />
-        </SidebarSection>
-
-        <SidebarSection title="Section Employés">
-          <SidebarItem
-            href="/employees"
-            icon={Users}
-            label="Employés"
-            hasSubMenu
-            isActive={location.startsWith("/employees")}
-            onClick={() => toggleExpanded("employees")}
-          />
-          {expanded.employees && (
-            <div className="bg-slate-900/50 py-2 my-1 rounded-lg">
-              <SubMenuItem
-                href="/employees/add"
-                icon={UserPlus}
-                label="Ajouter un Employé"
-                isActive={location === "/employees/add"}
-              />
-              <SubMenuItem
-                href="/employees"
-                icon={ListOrdered}
-                label="Liste des Employés"
-                isActive={
-                  location === "/employees" && !location.includes("/add")
-                }
-              />
-            </div>
-          )}
         </SidebarSection>
       </div>
 
@@ -303,7 +223,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         jsx
         global>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 3px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: #0f172a;

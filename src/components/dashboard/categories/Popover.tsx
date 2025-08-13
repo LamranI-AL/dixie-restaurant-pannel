@@ -11,16 +11,30 @@ import {
 } from "@/components/ui/popover";
 import { Category } from "@/lib/types";
 import { useAuth } from "@/providers/auth-provider";
-import { UploadButton } from "@/utils/uploadthing";
+import { uploadImage } from "@/utils/uploadthing";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef } from "react";
 interface PopoverProps {
   buttonName: string;
 }
 export function PopoverButton({ buttonName }: PopoverProps) {
   const [urlImage, setUrlImage] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { currentUser } = useAuth();
   const router = useRouter();
+  
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const uploadedUrl = await uploadImage(file);
+      setUrlImage(uploadedUrl);
+      alert("Upload Completed");
+    } catch (error) {
+      alert(`ERROR! ${error instanceof Error ? error.message : "Upload failed"}`);
+    }
+  };
   const addNewCategoryClientSide = async (formData: FormData) => {
     const name = formData.get("name") as string;
     // const id = formData.get("id") as string;
@@ -80,20 +94,18 @@ export function PopoverButton({ buttonName }: PopoverProps) {
             </div> */}
             <div className="grid grid-cols-3 items-center gap-4">
               <Label htmlFor="maxHeight">Image</Label>
-              <UploadButton
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  // Do something with the response
-                  console.log("Files: ", res);
-                  console.log(res[0].ufsUrl!);
-                  setUrlImage(res[0].ufsUrl! as string);
-                  alert("Upload Completed");
-                }}
-                onUploadError={(error: Error) => {
-                  // Do something with the error.
-                  alert(`ERROR! ${error.message}`);
-                }}
-              />
+              <div className="col-span-2">
+                <Button type="button" onClick={() => fileInputRef.current?.click()}>
+                  Upload Image
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
             </div>
             <Button className="gap-4">add</Button>
           </div>

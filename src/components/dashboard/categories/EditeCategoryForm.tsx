@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 // import { Category } from "@/lib/types";
-import { useToast } from "@/lib/hooks/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { PenBox } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

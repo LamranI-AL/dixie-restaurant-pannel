@@ -118,6 +118,7 @@ export interface Order {
   deliveryOption: string;
   deliveryFee: number;
   packagingFee: number;
+
   userId: string;
   discount: number;
   total: number;
@@ -146,20 +147,7 @@ export interface OrderItem {
   subtotal: number;
 }
 
-export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "accepted"
-  | "cooking"
-  | "ready-for-delivery"
-  | "on-the-way"
-  | "delivered"
-  | "dine-in"
-  | "refunded"
-  | "refund-requested"
-  | "scheduled"
-  | "payment-failed"
-  | "canceled";
+export type OrderStatus = "pending" | "in-progress" | "delivered" | "canceled";
 
 // Employee types
 export interface Employee {
@@ -191,10 +179,10 @@ export interface Deliveryman {
   identityImageUrl?: string; // URL or base64 string
   licenseFile?: string; // URL or base64 string
   status: "active" | "inactive" | "suspended";
-  createdAt?: Date; // Optional in some contexts like updates
+  createdAt?: Date;
   updatedAt?: Date;
   isApproved: boolean;
-} // URL of the deliveryman image
+}
 
 // Promotion types
 export interface Campaign {

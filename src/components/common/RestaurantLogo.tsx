@@ -2,7 +2,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import logo from "../../../public/DixieLogo.png";
+import logo from "../../../public/logo.png";
 
 interface RestaurantLogoProps {
   className?: string;
