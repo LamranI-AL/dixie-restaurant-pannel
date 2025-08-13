@@ -391,7 +391,7 @@ export default function CuisinesPage() {
 
       {/* Pied de page */}
       <div className="flex justify-between items-center border-t pt-4 text-sm text-muted-foreground">
-        <div>© afood.</div>
+        <div>© Dixie.</div>
       </div>
     </div>
   );

@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           <RestaurantLogo className="w-6 h-6" />
         </div>
         <h1 className="text-lg font-bold ml-2.5 text-white">
-          <span className="text-yellow-400">A</span>Food
+          <span className="text-yellow-400">D</span>ixie  
         </h1>
       </div>
 

@@ -964,7 +964,7 @@ export default function ProfessionalDashboard() {
         {/* Pied de page */}
         <div className="flex justify-between items-center pt-6 border-t border-gray-200 text-sm text-gray-500">
           <div>
-            © 2024 AFOOD Dashboard - Données actualisées le{" "}
+            © 2024 Dixie Dashboard - Données actualisées le{" "}
             {new Date().toLocaleString()}
           </div>
           <div className="flex items-center gap-4">
