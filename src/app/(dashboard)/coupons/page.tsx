@@ -14,7 +14,7 @@ const CouponsPage = () => {
     undefined,
   );
   const [viewMode, setViewMode] = useState(false);
-  const restaurantId = "";
+  const restaurantId = "iqGHAk4qBeUEgODnF3aR";
 
   // Gérer le clic sur le bouton "Ajouter un coupon"
   const handleAddClick = () => {

@@ -224,7 +224,7 @@ export function AddFoodModal({ trigger, onSuccess }: AddFoodModalProps) {
       preparationTime: parseInt(formData.preparationTime, 10),
       variations,
       addons,
-      restaurantId: "current-restaurant-id",
+      restaurantId: "iqGHAk4qBeUEgODnF3aR",
       totalSold: 0,
       rating: 0,
       reviewCount: 0,

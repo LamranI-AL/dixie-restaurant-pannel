@@ -250,7 +250,7 @@ export function AddOrderModal({ trigger, onSuccess }: AddOrderModalProps) {
         paymentStatus: "unpaid" as const,
         orderStatus: "confirmed" as const,
         orderType: formData.orderType,
-        restaurantId: "current-restaurant-id",
+        restaurantId: "iqGHAk4qBeUEgODnF3aR",
         notes: formData.notes || null,
         deliveryLocation:
           formData.orderType === "delivery"
